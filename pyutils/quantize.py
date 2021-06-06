@@ -1,12 +1,11 @@
 """
-@Author: Jake Gu
-@Date: 2020-07-30 16:38:43
+Description:
+Author: Jiaqi Gu (jqgu@utexas.edu)
+Date: 2021-06-06 03:15:00
 LastEditors: Jiaqi Gu (jqgu@utexas.edu)
-LastEditTime: 2021-03-03 14:11:47
+LastEditTime: 2021-06-06 03:15:00
 """
-######################
-#       quantize      #
-######################
+
 import numpy as np
 import torch
 import logging

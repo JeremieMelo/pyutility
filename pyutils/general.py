@@ -6,7 +6,6 @@ LastEditors: Jiaqi Gu (jqgu@utexas.edu)
 LastEditTime: 2021-06-06 01:55:30
 """
 
-
 import os
 import argparse
 import json

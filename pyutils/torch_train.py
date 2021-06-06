@@ -1,6 +1,11 @@
-##########################
-#       torch model      #
-##########################
+'''
+Description:
+Author: Jiaqi Gu (jqgu@utexas.edu)
+Date: 2021-06-06 03:15:06
+LastEditors: Jiaqi Gu (jqgu@utexas.edu)
+LastEditTime: 2021-06-06 03:15:06
+'''
+
 import csv
 import os
 import random

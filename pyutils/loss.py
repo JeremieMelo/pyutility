@@ -1,9 +1,11 @@
 """
-Author: Jake Gu
-Date: 2020-09-20 03:14:59
+Description:
+Author: Jiaqi Gu (jqgu@utexas.edu)
+Date: 2021-06-06 03:14:42
 LastEditors: Jiaqi Gu (jqgu@utexas.edu)
-LastEditTime: 2021-05-17 03:09:26
+LastEditTime: 2021-06-06 03:14:43
 """
+
 from typing import Optional, Tuple
 
 import numpy as np
