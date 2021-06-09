@@ -34,6 +34,7 @@ __all__ = [
     "logger",
     "ArgParser",
     "disable_tf_warning",
+    "AverageMeter",
 ]
 
 
