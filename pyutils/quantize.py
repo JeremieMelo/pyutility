@@ -96,8 +96,6 @@ def uniform_quantize_new(k, gradient_clip=False):
 class input_quantize_fn(torch.nn.Module):
     def __init__(self, in_bit, alg="dorefa", device=torch.device("cuda:0"), quant_ratio=1.0):
         """Input quantizer with Quant_Noise supported
-        TODO: support more wise quantization with self-adjusted scale and zeropoint
-
         Args:
             in_bit (int): Input quantization bitwidth.
             device (Device, optional): torch Device. Defaults to torch.device("cuda:0").
@@ -138,6 +136,24 @@ class input_quantize_fn(torch.nn.Module):
             quant_min=0,
             quant_max=2 ** self.in_bit - 1,
         ).to(self.device)
+
+    def set_bitwidth(self, bit: int) -> None:
+        ### regenerate quantizer without changing observation statistics
+        if bit != self.in_bit:
+            if self.alg == "dorefa":
+                self.uniform_q = uniform_quantize(k=bit)
+            elif self.alg == "normal":
+                self.uniform_q = uniform_quantize_new(k=bit)
+        self.in_bit = bit
+
+    def set_alg(self, alg: str) -> None:
+        assert alg in {"dorefa", "normal"}, f"Only support (dorefa, normal), but got {alg}"
+        if alg != self.alg:
+            if alg == "dorefa":
+                self.uniform_q = uniform_quantize(k=self.in_bit)
+            elif alg == "normal":
+                self.uniform_q = uniform_quantize_new(k=self.in_bit)
+        self.alg = alg
 
     def set_quant_ratio(self, quant_ratio=None):
         if quant_ratio is None:
