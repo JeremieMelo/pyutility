@@ -24,8 +24,16 @@ __all__ = [
 class Config(dict):
     def __getattr__(self, key: str) -> Any:
         if key not in self:
-            raise AttributeError(key)
-        return self[key]
+            d = self
+            ## try hierarchical access
+            keys = key.split(".")
+            for k in keys:
+                if k not in d:
+                    raise AttributeError(key)
+                d = d[k]
+            return d
+        else:
+            return self[key]
 
     def __setattr__(self, key: str, value: Any) -> None:
         self[key] = value
