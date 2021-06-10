@@ -51,6 +51,7 @@ class SAM(torch.optim.Optimizer):
 
         if zero_grad:
             self.zero_grad()
+        self._step_count += 1  # otherwise, lr_scheduler will be delayed by one epoch
 
     @torch.no_grad()
     def step(self, closure=None):
