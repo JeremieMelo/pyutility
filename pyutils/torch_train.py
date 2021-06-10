@@ -1,10 +1,10 @@
-'''
+"""
 Description:
 Author: Jiaqi Gu (jqgu@utexas.edu)
 Date: 2021-06-06 03:15:06
 LastEditors: Jiaqi Gu (jqgu@utexas.edu)
 LastEditTime: 2021-06-06 03:15:06
-'''
+"""
 
 import csv
 import os
@@ -39,6 +39,8 @@ __all__ = [
     "set_learning_rate",
     "get_learning_rate",
     "apply_weight_decay",
+    "disable_bn",
+    "enable_bn",
 ]
 
 
@@ -439,3 +441,31 @@ def apply_weight_decay(W, decay_rate, learning_rate, mask=None):
         W[~mask] -= W[~mask] * decay_rate * learning_rate
     else:
         W -= W * decay_rate * learning_rate
+
+
+def disable_bn(model: torch.nn.Module) -> None:
+    for m in model.modules():
+        if isinstance(
+            m,
+            (
+                torch.nn.BatchNorm1d,
+                torch.nn.BatchNorm2d,
+                torch.nn.BatchNorm3d,
+                torch.nn.SyncBatchNorm,
+            ),
+        ):
+            m.eval()
+
+
+def enable_bn(model: torch.nn.Module) -> None:
+    for m in model.modules():
+        if isinstance(
+            m,
+            (
+                torch.nn.BatchNorm1d,
+                torch.nn.BatchNorm2d,
+                torch.nn.BatchNorm3d,
+                torch.nn.SyncBatchNorm,
+            ),
+        ):
+            m.train()
