@@ -1,16 +1,17 @@
-"""
+'''
 Description:
 Author: Jiaqi Gu (jqgu@utexas.edu)
-Date: 2021-06-06 02:48:21
+Date: 2021-11-29 04:15:29
 LastEditors: Jiaqi Gu (jqgu@utexas.edu)
-LastEditTime: 2021-06-06 02:48:21
-"""
+LastEditTime: 2021-11-29 04:15:29
+'''
 
 from setuptools import setup, find_packages
+from pyutils import __version__
 
 setup(
     name="pyutils",
-    version="0.0.1",
+    version=__version__,
     description="Python/Pytorch Utility",
     url="https://github.com/JeremieMelo/pyutility",
     author="Jiaqi Gu",
@@ -22,7 +23,6 @@ setup(
         "tqdm>=4.56.0",
         "setuptools>=52.0.0",
         "torch>=1.8.0",
-        "pyutils>=0.0.1",
         "matplotlib>=3.3.4",
         "svglib>=1.1.0",
         "scipy>=1.5.4",
