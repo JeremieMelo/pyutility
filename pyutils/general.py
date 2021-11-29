@@ -10,6 +10,7 @@ import os
 import argparse
 import json
 import logging
+import logging.handlers
 import time
 from collections import OrderedDict
 from datetime import datetime
@@ -30,8 +31,10 @@ __all__ = [
     "TimerCtx",
     "TorchTracemalloc",
     "fullprint",
+    "setup_default_logging",
     "Logger",
     "logger",
+    "get_logger",
     "ArgParser",
     "disable_tf_warning",
     "AverageMeter",
@@ -175,6 +178,21 @@ class CustomFormatter(logging.Formatter):
         return formatter.format(record)
 
 
+def setup_default_logging(default_level=logging.INFO, default_file_level=logging.INFO, log_path=""):
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(CustomFormatter())
+    logging.root.addHandler(console_handler)
+    logging.root.setLevel(default_level)
+    if log_path:
+        file_handler = logging.handlers.RotatingFileHandler(log_path, maxBytes=(1024 ** 2 * 2), backupCount=3)
+        file_formatter = logging.Formatter(
+            "%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s"
+        )
+        file_handler.setFormatter(file_formatter)
+        file_handler.setLevel(default_file_level)
+        logging.root.addHandler(file_handler)
+
+
 class Logger(object):
     def __init__(self, console=True, logfile=None, console_level=logging.INFO, logfile_level=logging.INFO):
         super().__init__()
@@ -221,7 +239,14 @@ class Logger(object):
         self.logger.critical(message)
 
 
-logger = Logger()
+def get_logger(name="default", default_level=logging.INFO, default_file_level=logging.INFO, log_path=""):
+    setup_default_logging(
+        default_level=default_level, default_file_level=default_file_level, log_path=log_path
+    )
+    return logging.getLogger(name)
+
+
+logger = get_logger()
 
 
 class ArgParser(object):
