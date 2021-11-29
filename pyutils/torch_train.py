@@ -292,9 +292,15 @@ class ThresholdScheduler_tf(object):
         import tensorflow as tf
         import tensorflow_model_optimization as tfmot
 
-        config = tf.ConfigProto()
-        config.gpu_options.allow_growth = True
-        tf.enable_eager_execution(config=config)
+        gpus = tf.config.list_physical_devices('GPU')
+        if gpus:
+        # Restrict TensorFlow to only allocate 1GB of memory on the first GPU
+            try:
+                for gpu in gpus:
+                    tf.config.experimental.set_memory_growth(gpu, True)
+            except RuntimeError as e:
+                # Virtual devices must be set before GPUs have been initialized
+                print(e)
         self.step_beg = step_beg
         self.step_end = step_end
         self.thres_beg = thres_beg
