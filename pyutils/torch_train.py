@@ -94,25 +94,49 @@ def save_model(model, path="./checkpoint/model.pt", print_msg=True):
 
 
 class BestKModelSaver(object):
-    def __init__(self, k=1):
+    def __init__(
+        self,
+        k: int = 1,
+        descend: bool = True,
+        truncate: int = 2,
+        metric_name: str = "acc",
+        format: str = "{:.2f}",
+    ):
         super().__init__()
         self.k = k
+        self.descend = descend
+        self.truncate = truncate
+        self.metric_name = metric_name
+        self.format = format
+        self.epsilon = 0.1 ** truncate
         self.model_cache = OrderedDict()
 
-    def __insert_model_record(self, acc, dir, checkpoint_name, epoch=None):
-        acc = round(acc * 100) / 100
+    def better_op(self, a, b):
+        if self.descend:
+            return a >= b + self.epsilon
+        else:
+            return a <= b - self.epsilon
+
+    def __insert_model_record(self, metric, dir, checkpoint_name, epoch=None):
+        metric = round(metric * 10 ** self.truncate) / 10 ** self.truncate
         if len(self.model_cache) < self.k:
             new_checkpoint_name = (
-                f"{checkpoint_name}_acc-{acc:.2f}{'' if epoch is None else '_epoch-'+str(epoch)}"
+                f"{checkpoint_name}_{self.metric_name}-"
+                + self.format.format(metric)
+                + f"{'' if epoch is None else '_epoch-'+str(epoch)}"
             )
             path = os.path.join(dir, new_checkpoint_name + ".pt")
-            self.model_cache[path] = (acc, epoch)
+            self.model_cache[path] = (metric, epoch)
             return path, None
         else:
-            min_acc, min_epoch = sorted(list(self.model_cache.values()), key=lambda x: x[0])[0]
-            if acc >= min_acc + 0.01:
+            worst_metric, worst_epoch = sorted(
+                list(self.model_cache.values()), key=lambda x: x[0], reverse=False if self.descend else True
+            )[0]
+            if self.better_op(metric, worst_metric):
                 del_checkpoint_name = (
-                    f"{checkpoint_name}_acc-{min_acc:.2f}{'' if epoch is None else '_epoch-'+str(min_epoch)}"
+                    f"{checkpoint_name}_{self.metric_name}-"
+                    + self.format.format(worst_metric)
+                    + f"{'' if epoch is None else '_epoch-'+str(worst_epoch)}"
                 )
                 del_path = os.path.join(dir, del_checkpoint_name + ".pt")
                 try:
@@ -120,10 +144,12 @@ class BestKModelSaver(object):
                 except:
                     print("[W] Cannot remove checkpoint: {} from cache".format(del_path), flush=True)
                 new_checkpoint_name = (
-                    f"{checkpoint_name}_acc-{acc:.2f}{'' if epoch is None else '_epoch-'+str(epoch)}"
+                    f"{checkpoint_name}_{self.metric_name}-"
+                    + self.format.format(metric)
+                    + f"{'' if epoch is None else '_epoch-'+str(epoch)}"
                 )
                 path = os.path.join(dir, new_checkpoint_name + ".pt")
-                self.model_cache[path] = (acc, epoch)
+                self.model_cache[path] = (metric, epoch)
                 return path, del_path
             # elif(acc == min_acc):
             #     new_checkpoint_name = f"{checkpoint_name}_acc-{acc:.2f}{'' if epoch is None else '_epoch-'+str(epoch)}"
@@ -136,7 +162,7 @@ class BestKModelSaver(object):
     def save_model(
         self,
         model,
-        acc,
+        metric,
         epoch=None,
         path="./checkpoint/model.pt",
         other_params=None,
@@ -157,9 +183,9 @@ class BestKModelSaver(object):
         dir = os.path.dirname(path)
         ensure_dir(dir)
         checkpoint_name = os.path.splitext(os.path.basename(path))[0]
-        if isinstance(acc, torch.Tensor):
-            acc = acc.data.item()
-        new_path, del_path = self.__insert_model_record(acc, dir, checkpoint_name, epoch)
+        if isinstance(metric, torch.Tensor):
+            metric = metric.data.item()
+        new_path, del_path = self.__insert_model_record(metric, dir, checkpoint_name, epoch)
 
         if del_path is not None:
             try:
@@ -172,8 +198,14 @@ class BestKModelSaver(object):
 
         if new_path is None:
             if print_msg:
+                if self.descend:
+                    best_list = list(reversed(sorted(list(self.model_cache.values()))))
+                else:
+                    best_list = list(sorted(list(self.model_cache.values())))
                 print(
-                    f"[I] Not best {self.k}: {list(reversed(sorted(list(self.model_cache.values()))))}, skip this model ({acc:.2f}): {path}",
+                    f"[I] Not best {self.k}: {best_list}, skip this model ("
+                    + self.format.format(metric)
+                    + f"): {path}",
                     flush=True,
                 )
         else:
@@ -190,8 +222,13 @@ class BestKModelSaver(object):
                     saved_dict.update({"model": None, "state_dict": model.state_dict()})
                     torch.save(saved_dict, new_path)
                 if print_msg:
+                    if self.descend:
+                        best_list = list(reversed(sorted(list(self.model_cache.values()))))
+                    else:
+                        best_list = list(sorted(list(self.model_cache.values())))
+
                     print(
-                        f"[I] Model saved to {new_path}. Current best {self.k}: {list(reversed(sorted(list(self.model_cache.values()))))}",
+                        f"[I] Model saved to {new_path}. Current best {self.k}: {best_list}",
                         flush=True,
                     )
             except Exception as e:
@@ -292,9 +329,9 @@ class ThresholdScheduler_tf(object):
         import tensorflow as tf
         import tensorflow_model_optimization as tfmot
 
-        gpus = tf.config.list_physical_devices('GPU')
+        gpus = tf.config.list_physical_devices("GPU")
         if gpus:
-        # Restrict TensorFlow to only allocate 1GB of memory on the first GPU
+            # Restrict TensorFlow to only allocate 1GB of memory on the first GPU
             try:
                 for gpu in gpus:
                     tf.config.experimental.set_memory_growth(gpu, True)
