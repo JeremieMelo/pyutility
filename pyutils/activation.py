@@ -3,7 +3,7 @@ Description:
 Author: Jiaqi Gu (jqgu@utexas.edu)
 Date: 2021-05-19 03:51:51
 LastEditors: Jiaqi Gu (jqgu@utexas.edu)
-LastEditTime: 2021-06-05 23:49:08
+LastEditTime: 2022-02-06 23:59:07
 '''
 
 import logging
@@ -114,7 +114,7 @@ class CReLU(nn.Module):
         if self.inplace:
             x.real.relu_()
             x.imag.relu_()
-            return
+            return x
         else:
             return torch.complex(torch.relu(x.real), torch.relu(x.imag))
 
