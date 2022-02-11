@@ -12,12 +12,11 @@ from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
-from torch import nn
 from scipy.stats import truncnorm
+from torch import Tensor, nn
 from torch.autograd import grad
-from torch.tensor import Tensor
-from torch.types import Device, _size
 from torch.nn.modules.utils import _pair
+from torch.types import Device, _size
 
 from .torch_train import set_torch_deterministic
 
