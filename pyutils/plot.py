@@ -211,7 +211,7 @@ def draw_pie_plot(data, ax, colors=None, fontsize=10):
     return bp
 
 
-def draw_mesh2d_plot(data, fig, ax, fontsize=10):
+def draw_mesh2d_plot(data, fig, ax, fontsize=10, cmap=plt.cm.RdYlGn):
     ### x = [M], y = [N], z = [M, N]
     x, y, z = data["x"], data["y"], data["z"]
     dx = (x[-1] - x[0]) / (len(x) - 1)
@@ -219,7 +219,7 @@ def draw_mesh2d_plot(data, fig, ax, fontsize=10):
     x = np.arange(x[0] - dx / 2, x[-1] + 1.1 * dx / 2, dx)
     y = np.arange(y[0] - dy / 2, y[-1] + 1.1 * dy / 2, dy)
 
-    im = ax.pcolormesh(x, y, z, vmin=np.min(z), vmax=np.max(z), shading="auto", cmap=plt.cm.RdYlGn)
+    im = ax.pcolormesh(x, y, z, vmin=np.min(z), vmax=np.max(z), shading="auto", cmap=cmap)
     fig.colorbar(im, ax=ax)
     return im
 
@@ -354,6 +354,8 @@ def batch_plot(
     legend_ncol=1,
     # science and ieee settings
     ieee=True,
+    # color map
+    cmap=plt.cm.RdYlGn,
 ):
     """
     description: batch plot function\\
@@ -505,7 +507,7 @@ def batch_plot(
         bp = draw_pie_plot(data, ax, colors=pie_colors, fontsize=fontsize)
     elif type == "mesh2d":
         data = raw_data
-        bp = draw_mesh2d_plot(data, fig, ax, fontsize=fontsize)
+        bp = draw_mesh2d_plot(data, fig, ax, fontsize=fontsize, cmap=cmap)
     elif type == "surface3d":
         data = raw_data
         bp = draw_surface3d_plot(data, fig, ax, fontsize=fontsize, zrange=zrange, zformat=zformat)
