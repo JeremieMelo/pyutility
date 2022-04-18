@@ -122,20 +122,23 @@ class input_quantize_fn(torch.nn.Module):
             self.uniform_q = uniform_quantize_new(k=in_bit)
             self.scale = None
             self.zero_point = None
-        ### select scale and zero-point using EMA: exponential moving averages
-        # AT: MovingAverageMinMaxObserver only support self-defined quant bitwidths for pytorch1.7
-        # obs = torch.quantization.observer.MovingAverageMinMaxObserver(averaging_constant=0.01, dtype=torch.quint8,
-        #     qscheme=torch.per_tensor_affine, reduce_range=False, quant_min=0, quant_max=2**self.in_bit-1)
-        # Thus use our version
-        ### torch version must be higher than 1.7
-        self.obs = torch.quantization.observer.MovingAverageMinMaxObserver(
-            averaging_constant=0.01,
-            dtype=torch.quint8,
-            qscheme=torch.per_tensor_affine,
-            reduce_range=False,
-            quant_min=0,
-            quant_max=2 ** self.in_bit - 1,
-        ).to(self.device)
+            ### select scale and zero-point using EMA: exponential moving averages
+            # AT: MovingAverageMinMaxObserver only support self-defined quant bitwidths for pytorch1.7
+            # obs = torch.quantization.observer.MovingAverageMinMaxObserver(averaging_constant=0.01, dtype=torch.quint8,
+            #     qscheme=torch.per_tensor_affine, reduce_range=False, quant_min=0, quant_max=2**self.in_bit-1)
+            # Thus use our version
+            ### torch version must be higher than 1.7
+            if 1 <= self.in_bit <= 8:  # observer does not support higher than 8-bit
+                self.obs = torch.quantization.observer.MovingAverageMinMaxObserver(
+                    averaging_constant=0.01,
+                    dtype=torch.quint8,
+                    qscheme=torch.per_tensor_affine,
+                    reduce_range=False,
+                    quant_min=0,
+                    quant_max=2 ** self.in_bit - 1,
+                ).to(self.device)
+            else:
+                self.obs = None
 
     def set_bitwidth(self, bit: int) -> None:
         ### regenerate quantizer without changing observation statistics
@@ -205,13 +208,16 @@ class input_quantize_fn(torch.nn.Module):
                 x = x.clamp(0, 1)
                 input_q = self.uniform_q(x)
             elif self.alg == "normal":
-                if self.training:
-                    self.obs(x)
-                scale, zero_point = self.obs.calculate_qparams()
-                # convert scale and zero_point type from qint8
-                self.scale = scale.to(x)
-                self.zero_point = zero_point.to(x)
-                input_q = self.uniform_q(x, self.scale, self.zero_point)
+                if self.obs is not None:
+                    if self.training:
+                        self.obs(x)
+                    scale, zero_point = self.obs.calculate_qparams()
+                    # convert scale and zero_point type from qint8
+                    self.scale = scale.to(x)
+                    self.zero_point = zero_point.to(x)
+                    input_q = self.uniform_q(x, self.scale, self.zero_point)
+                else:
+                    input_q = x  # if no observer (in_bit > 8), do not quantize
             else:
                 raise NotImplementedError
 
