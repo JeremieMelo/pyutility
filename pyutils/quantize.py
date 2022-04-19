@@ -281,6 +281,12 @@ class weight_quantize_fn(torch.nn.Module):
         )
         self.quant_ratio = quant_ratio
 
+    def set_bitwidth(self, bit: int) -> None:
+        ### regenerate quantizer without changing observation statistics
+        if bit != self.w_bit:
+            self.uniform_q = uniform_quantize(k=bit, gradient_clip=True)
+            self.w_bit = bit
+
     def forward(self, x):
         if self.quant_ratio < 1 and self.training:
             ### implementation from fairseq
