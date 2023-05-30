@@ -59,7 +59,7 @@ def uniform_quantize(k, gradient_clip=False):
                 grad_input.clamp_(-1, 1)
             return grad_input
 
-    return qfn().apply
+    return qfn.apply
 
 
 ############ add observer and new quant based on range and zeropoint for activation
