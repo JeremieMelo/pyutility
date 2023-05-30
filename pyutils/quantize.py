@@ -16,6 +16,8 @@ __all__ = [
     "pact_quantize",
     "PACT_Act",
     "uniform_quantize",
+    "uniform_quantize_new",
+    "ewgs_quantize",
     "input_quantize_fn",
     "weight_quantize_fn",
 ]
@@ -32,7 +34,7 @@ class uniform_quantize_cpu(object):
         elif self.bits == 1:
             out = np.sign(input)
         else:
-            n = float(2 ** self.bits - 1)
+            n = float(2**self.bits - 1)
             out = np.round(input * n) / n
         return out
 
@@ -46,7 +48,7 @@ def uniform_quantize(k, gradient_clip=False):
             elif k == 1:
                 out = torch.sign(input)
             else:
-                n = float(2 ** k - 1)
+                n = float(2**k - 1)
                 out = torch.round(input * n) / n
             return out
 
@@ -77,7 +79,7 @@ def uniform_quantize_new(k, gradient_clip=False):
             elif k == 1:
                 out = torch.sign(input)
             else:
-                n = float(2 ** k - 1)
+                n = float(2**k - 1)
                 # out = torch.round(input * n) / n
                 # out = (torch.clamp(torch.round(input / scale + zero_point), 0, n) - zero_point) * scale
                 out = input.div(scale).add_(zero_point).round_().clamp_(0, n).sub_(zero_point).mul_(scale)
@@ -91,6 +93,38 @@ def uniform_quantize_new(k, gradient_clip=False):
             return grad_input, None, None
 
     return qfn.apply
+
+
+def ewgs_quantize(num_levels, gradient_clip=False, scaling_factor: float = 1e-3):
+    class EWGS_quantizer(torch.autograd.Function):
+        """
+        Network Quantization with Element-wise Gradient Scaling, CVPR 2021
+        https://github.com/cvlab-yonsei/EWGS/blob/main/CIFAR10/custom_modules.py
+        x_in: continuous inputs within the range of [0,1]
+        num_levels: number of discrete levels
+        scaling_factor: backward scaling factor, typically fixed to 1e-3
+        x_out: discretized version of x_in within the range of [0,1]
+        """
+
+        @staticmethod
+        def forward(ctx, input):
+            out = input.mul(num_levels - 1).round_().mul_(1/(num_levels - 1))
+
+            ctx._scaling_factor = scaling_factor
+            ctx.save_for_backward(input - out)
+            return out
+
+        @staticmethod
+        def backward(ctx, grad_output):
+            diff = ctx.saved_tensors[0]
+            delta = ctx._scaling_factor
+            scale = diff.mul_(grad_output.sign()).mul_(delta).add_(1)
+            grad_input = grad_output * scale
+            if gradient_clip:
+                grad_input.clamp_(-1, 1)
+            return grad_input
+
+    return EWGS_quantizer.apply
 
 
 class input_quantize_fn(torch.nn.Module):
@@ -107,9 +141,7 @@ class input_quantize_fn(torch.nn.Module):
         self.alg = alg
         assert alg in {"dorefa", "normal"}, f"Only support (dorefa, normal), but got {alg}"
         self.quant_ratio = quant_ratio
-        assert 0 <= quant_ratio <= 1, logging.error(
-            f"Wrong quant ratio. Must in [0,1], but got {quant_ratio}"
-        )
+        assert 0 <= quant_ratio <= 1, logging.error(f"Wrong quant ratio. Must in [0,1], but got {quant_ratio}")
         self.device = device
 
         # define quant style
@@ -135,7 +167,7 @@ class input_quantize_fn(torch.nn.Module):
                     qscheme=torch.per_tensor_affine,
                     reduce_range=False,
                     quant_min=0,
-                    quant_max=2 ** self.in_bit - 1,
+                    quant_max=2**self.in_bit - 1,
                 ).to(self.device)
             else:
                 self.obs = None
@@ -180,9 +212,7 @@ class input_quantize_fn(torch.nn.Module):
                 0.99,
                 1,
             ][min(self.in_bit, 16)]
-        assert 0 <= quant_ratio <= 1, logging.error(
-            f"Wrong quant ratio. Must in [0,1], but got {quant_ratio}"
-        )
+        assert 0 <= quant_ratio <= 1, logging.error(f"Wrong quant ratio. Must in [0,1], but got {quant_ratio}")
         self.quant_ratio = quant_ratio
 
     def forward(self, x):
@@ -249,9 +279,7 @@ class weight_quantize_fn(torch.nn.Module):
             f"Only support (dorefa, dorefa_sym, qnn, dorefa_pos) algorithms, but got {alg}"
         )
         self.quant_ratio = quant_ratio
-        assert 0 <= quant_ratio <= 1, logging.error(
-            f"Wrong quant ratio. Must in [0,1], but got {quant_ratio}"
-        )
+        assert 0 <= quant_ratio <= 1, logging.error(f"Wrong quant ratio. Must in [0,1], but got {quant_ratio}")
         self.uniform_q = uniform_quantize(k=w_bit, gradient_clip=True)
 
     def set_quant_ratio(self, quant_ratio=None):
@@ -276,9 +304,7 @@ class weight_quantize_fn(torch.nn.Module):
                 0.99,
                 1,
             ][min(self.w_bit, 16)]
-        assert 0 <= quant_ratio <= 1, logging.error(
-            f"Wrong quant ratio. Must in [0,1], but got {quant_ratio}"
-        )
+        assert 0 <= quant_ratio <= 1, logging.error(f"Wrong quant ratio. Must in [0,1], but got {quant_ratio}")
         self.quant_ratio = quant_ratio
 
     def set_bitwidth(self, bit: int) -> None:
@@ -469,12 +495,8 @@ class PACT_Act(torch.nn.Module):
         # these are only used to gather statistics
         self.max = torch.nn.Parameter(torch.zeros_like(self.alpha.data).to(device), requires_grad=False)
         self.min = torch.nn.Parameter(torch.zeros_like(self.alpha.data).to(device), requires_grad=False)
-        self.running_mean = torch.nn.Parameter(
-            torch.zeros_like(self.alpha.data).to(device), requires_grad=False
-        )
-        self.running_var = torch.nn.Parameter(
-            torch.ones_like(self.alpha.data).to(device), requires_grad=False
-        )
+        self.running_mean = torch.nn.Parameter(torch.zeros_like(self.alpha.data).to(device), requires_grad=False)
+        self.running_var = torch.nn.Parameter(torch.ones_like(self.alpha.data).to(device), requires_grad=False)
 
         self.precise = False
 

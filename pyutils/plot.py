@@ -10,7 +10,10 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.ticker import FormatStrFormatter, FuncFormatter, LinearLocator
 from mpl_toolkits.axes_grid1 import Divider, Size
-from reportlab.graphics import renderPDF
+try:
+    from reportlab.graphics import renderPDF
+except Exception:
+    print("Cannot import reportlib library, svg2pdf() cannot work.")
 from scipy.interpolate import UnivariateSpline as spline
 from svglib.svglib import svg2rlg
 

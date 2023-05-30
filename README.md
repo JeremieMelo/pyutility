@@ -1,9 +1,10 @@
 # pyutils
 A python/pytorch utility library
 
-[![MIT License](https://img.shields.io/apm/l/atomic-design-ui.svg?)](https://github.com/JeremieMelo/pyutility/blob/release/LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## News
+- v0.0.2 available. Added new datasets and quantization!
 - v0.0.1 available. Feedbacks are highly welcomed!
 
 ## Installation

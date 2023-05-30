@@ -3,7 +3,7 @@ Description:
 Author: Jiaqi Gu (jqgu@utexas.edu)
 Date: 2021-11-29 04:15:29
 LastEditors: Jiaqi Gu (jqgu@utexas.edu)
-LastEditTime: 2021-11-29 04:15:29
+LastEditTime: 2023-04-03 20:08:33
 '''
 
 from setuptools import setup, find_packages
@@ -29,7 +29,7 @@ setup(
         "scikit-learn>=0.24.1",
         "torchsummary>=1.5.1",
         "pyyaml>=5.1.1",
-        "tensorflow-gpu>=2.5.0",
+        "tensorflow>=2.5.0",
     ],
     python_requires=">=3",
     include_package_data=True,
