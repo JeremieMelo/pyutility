@@ -18,6 +18,8 @@ __all__ = [
     "CrossEntropyLossSmooth",
     "f_divergence",
     "AdaptiveLossSoft",
+    "FocalLossWithSmoothing",
+    "DualFocalLoss",
 ]
 
 
@@ -79,7 +81,7 @@ class CrossEntropyLossSmooth(torch.nn.modules.loss._Loss):
         target = one_hot.mul_(1 - self.eps).add_(self.eps / n_class)
         output_log_prob = F.log_softmax(output, dim=1)
         target.unsqueeze_(1)
-        output_log_prob.unsqueeze_(2)
+        output_log_prob = output_log_prob.unsqueeze(2)
         loss = -torch.bmm(target, output_log_prob)
 
         if self.reduction == "mean":
@@ -160,3 +162,139 @@ class AdaptiveLossSoft(torch.nn.modules.loss._Loss):
         elif self.reduction == "sum":
             return loss.sum()
         return loss
+
+
+
+class FocalLossWithSmoothing(torch.nn.modules.loss._Loss):
+    def __init__(
+        self,
+        num_classes: int,
+        gamma: int = 2,
+        lb_smooth: float = 0.1,
+        size_average: bool = True,
+        ignore_index: int = None,
+        alpha: float = 0.5,
+    ):
+        """
+        :param gamma:
+        :param lb_smooth:
+        :param ignore_index:
+        :param size_average:
+        :param alpha:
+        """
+        super(FocalLossWithSmoothing, self).__init__()
+        self._num_classes = num_classes
+        self._gamma = gamma
+        self._lb_smooth = lb_smooth
+        self._size_average = size_average
+        self._ignore_index = ignore_index
+        self._log_softmax = nn.LogSoftmax(dim=1)
+        self._alpha = alpha
+
+        if self._num_classes <= 1:
+            raise ValueError("The number of classes must be 2 or higher")
+        if self._gamma < 0:
+            raise ValueError("Gamma must be 0 or higher")
+        if self._alpha is not None:
+            if self._alpha < 0 or self._alpha > 1:
+                raise ValueError("Alpha must be 0 < alpha < 1")
+
+    def forward(self, logits, label):
+        """
+        :param logits: (batch_size, class, height, width)
+        :param label:
+        :return:
+        """
+        logits = logits.float()
+        if self._num_classes == 2:
+            difficulty_level = self._estimate_difficulty_level_binary(logits, label)
+        else:
+            difficulty_level = self._estimate_difficulty_level(logits, label)
+
+        with torch.no_grad():
+            label = label.clone().detach()
+            if self._ignore_index is not None:
+                ignore = label.eq(self._ignore_index)
+                label[ignore] = 0
+            lb_pos, lb_neg = 1.0 - self._lb_smooth, self._lb_smooth / (
+                self._num_classes - 1
+            )
+            lb_one_hot = (
+                torch.empty_like(logits)
+                .fill_(lb_neg)
+                .scatter_(1, label.unsqueeze(1), lb_pos)
+                .detach()
+            )
+        logs = self._log_softmax(logits)
+        loss = -torch.sum(difficulty_level * logs * lb_one_hot, dim=1)
+        if self._ignore_index is not None:
+            loss[ignore] = 0
+        return loss.mean()
+
+    def _estimate_difficulty_level(self, logits, label):
+        """
+        :param logits:
+        :param label:
+        :return:
+        """
+        one_hot_key = torch.nn.functional.one_hot(label, num_classes=self._num_classes)
+        if len(one_hot_key.shape) == 4:
+            one_hot_key = one_hot_key.permute(0, 3, 1, 2)
+        if one_hot_key.device != logits.device:
+            one_hot_key = one_hot_key.to(logits.device)
+        pt = one_hot_key * torch.nn.functional.softmax(logits, -1)
+        difficulty_level = torch.pow(1 - pt, self._gamma)
+        return difficulty_level
+
+    def _estimate_difficulty_level_binary(self, logits, label):
+        """
+        :param logits:
+        :param label:
+        :return:
+        """
+        one_hot_key = torch.nn.functional.one_hot(label, num_classes=self._num_classes)
+        if len(one_hot_key.shape) == 4:
+            one_hot_key = one_hot_key.permute(0, 3, 1, 2)
+        if one_hot_key.device != logits.device:
+            one_hot_key = one_hot_key.to(logits.device)
+        pt = one_hot_key * torch.nn.functional.softmax(logits, -1)
+        # pred = logits.data.max(1)[1]
+        # fn = (label == 1) & (pred == 0)
+        neg = label == 1
+        alpha = torch.where(neg, 1 + self._alpha, 1 - self._alpha)
+        difficulty_level = alpha.unsqueeze(1) * torch.pow(1 - pt, self._gamma)
+        return difficulty_level
+
+
+class DualFocalLoss(torch.nn.modules.loss._Loss):
+    """https://arxiv.org/abs/2305.13665
+    Dual Focal Loss for Calibration
+    """
+    def __init__(self, gamma=5, size_average=True):
+        super(DualFocalLoss, self).__init__()
+        self.gamma = gamma
+        self.size_average = size_average
+
+    def forward(self, input, target):
+        if input.dim() > 2:
+            input = input.view(input.size(0), input.size(1), -1)  # N,C,H,W => N,C,H*W
+            input = input.transpose(1, 2)  # N,C,H*W => N,H*W,C
+            input = input.contiguous().view(-1, input.size(2))  # N,H*W,C => N*H*W,C
+        target = target.view(-1, 1)
+
+        logp_k = torch.nn.functional.log_softmax(input, dim=1)
+        softmax_logits = logp_k.exp()
+        logp_k = logp_k.gather(1, target)
+        logp_k = logp_k.view(-1)
+        p_k = logp_k.exp()  # p_k: probility at target label
+        p_j_mask = (
+            torch.lt(softmax_logits, p_k.reshape(p_k.shape[0], 1)) * 1
+        )  # mask all logit larger and equal than p_k
+        p_j = torch.topk(p_j_mask * softmax_logits, 1)[0].squeeze()
+
+        loss = -1 * (1 - p_k + p_j) ** self.gamma * logp_k
+
+        if self.size_average:
+            return loss.mean()
+        else:
+            return loss.sum()
