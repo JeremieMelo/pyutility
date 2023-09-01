@@ -16,6 +16,7 @@ from collections import OrderedDict
 import numpy as np
 import torch
 from scipy import interpolate
+from torch.nn.modules.batchnorm import _BatchNorm
 from torchsummary import summary
 
 from .general import ensure_dir
@@ -35,6 +36,7 @@ __all__ = [
     "ValueRegister",
     "ValueTracer",
     "EMA",
+    "SWA",
     "export_traces_to_csv",
     "set_learning_rate",
     "get_learning_rate",
@@ -448,6 +450,298 @@ class EMA(object):
             new_average[mask].copy_(old_average[mask])
         self.shadow[name] = new_average.clone()
         return new_average.data
+
+
+
+class SWA(torch.nn.Module):
+    """Stochastic Weight Averging.
+
+    # Paper
+        title: Averaging Weights Leads to Wider Optima and Better Generalization
+        link: https://arxiv.org/abs/1803.05407
+
+    # Arguments
+        start_epoch:   integer, epoch when swa should start.
+        lr_schedule:   string, type of learning rate schedule.
+        swa_lr:        float, learning rate for swa.
+        swa_lr2:       float, upper bound of cyclic learning rate.
+        swa_freq:      integer, length of learning rate cycle.
+        batch_size     integer, batch size (for batch norm with generator)
+        verbose:       integer, verbosity mode, 0 or 1.
+    """
+
+    def __init__(
+        self,
+        model: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+        start_epoch: int,
+        epochs: int,  # total epochs
+        steps,  # total steps per epoch
+        lr_schedule="manual",
+        swa_lr="auto",
+        swa_lr2="auto",
+        swa_freq=1,
+        batch_size=None,
+        verbose=0,
+    ):
+
+        super().__init__()
+        self.model = model
+        self.optimizer = optimizer
+        self.start_epoch = start_epoch - 1
+        self.epochs = epochs
+        self.steps = steps
+        self.lr_schedule = lr_schedule
+        self.swa_lr = swa_lr
+
+        # if no user determined upper bound, make one based off of the lower bound
+        self.swa_lr2 = swa_lr2 if swa_lr2 is not None else 10 * swa_lr
+        self.swa_freq = swa_freq
+        self.batch_size = batch_size
+        self.verbose = verbose
+
+        if start_epoch < 2:
+            raise ValueError('"swa_start" attribute cannot be lower than 2.')
+
+        schedules = ["manual", "constant", "cyclic"]
+
+        if self.lr_schedule not in schedules:
+            raise ValueError(
+                '"{}" is not a valid learning rate schedule'.format(self.lr_schedule)
+            )
+
+        if self.lr_schedule == "cyclic" and self.swa_freq < 2:
+            raise ValueError('"swa_freq" must be higher than 1 for cyclic schedule.')
+
+        if self.swa_lr == "auto" and self.swa_lr2 != "auto":
+            raise ValueError(
+                '"swa_lr2" cannot be manually set if "swa_lr" is automatic.'
+            )
+
+        if (
+            self.lr_schedule == "cyclic"
+            and self.swa_lr != "auto"
+            and self.swa_lr2 != "auto"
+            and self.swa_lr > self.swa_lr2
+        ):
+            raise ValueError('"swa_lr" must be lower than "swa_lr2".')
+
+    def on_train_begin(self):
+
+        self.lr_record = []
+
+        if self.start_epoch >= self.epochs - 1:
+            raise ValueError('"swa_start" attribute must be lower than "epochs".')
+
+        self.init_lr = self.optimizer.param_groups[0]["lr"]
+
+        # automatic swa_lr
+        if self.swa_lr == "auto":
+            self.swa_lr = 0.1 * self.init_lr
+
+        if self.init_lr < self.swa_lr:
+            raise ValueError('"swa_lr" must be lower than rate set in optimizer.')
+
+        # automatic swa_lr2 between initial lr and swa_lr
+        if self.lr_schedule == "cyclic" and self.swa_lr2 == "auto":
+            self.swa_lr2 = self.swa_lr + (self.init_lr - self.swa_lr) * 0.25
+
+        self._check_batch_norm()
+
+        if self.has_batch_norm and self.batch_size is None:
+            raise ValueError(
+                '"batch_size" needs to be set for models with batch normalization layers.'
+            )
+
+    def on_epoch_begin(self, epoch):
+        # input epoch is from 0 to epochs-1
+
+        self.current_epoch = epoch
+        self._scheduler(epoch)
+
+        # constant schedule is updated epoch-wise
+        if self.lr_schedule == "constant":
+            self._update_lr(epoch)
+
+        if self.is_swa_start_epoch:
+            # self.swa_weights = self.model.get_weights()
+            self.swa_weights = {
+                name: p.data.clone() for name, p in self.model.named_parameters()
+            }
+
+            if self.verbose > 0:
+                print(
+                    "\nEpoch %05d: starting stochastic weight averaging" % (epoch + 1)
+                )
+
+        if self.is_batch_norm_epoch:
+            self._set_swa_weights(epoch)
+
+            if self.verbose > 0:
+                print(
+                    "\nEpoch %05d: reinitializing batch normalization layers"
+                    % (epoch + 1)
+                )
+
+            self._reset_batch_norm()
+
+            if self.verbose > 0:
+                print(
+                    "\nEpoch %05d: running forward pass to adjust batch normalization"
+                    % (epoch + 1)
+                )
+
+    def on_batch_begin(self, batch):
+
+        # update lr each batch for cyclic lr schedule
+        if self.lr_schedule == "cyclic":
+            self._update_lr(self.current_epoch, batch)
+
+        if self.is_batch_norm_epoch:
+
+            batch_size = self.batch_size
+            # this is for tensorflow momentum, applied to the running stat
+            # momentum = batch_size / (batch * batch_size + batch_size)
+
+            # we need to convert it to torch momentum, applied to the batch stat
+            momentum = 1 - batch_size / (batch * batch_size + batch_size)
+
+            for layer in self.batch_norm_layers:
+                layer.momentum = momentum
+
+    def on_epoch_end(self, epoch):
+
+        if self.is_swa_start_epoch:
+            self.swa_start_epoch = epoch
+
+        if self.is_swa_epoch and not self.is_batch_norm_epoch:
+            self.swa_weights = self._average_weights(epoch)
+
+    def on_train_end(self):
+
+        if not self.has_batch_norm:
+            self._set_swa_weights(self.epochs)
+        else:
+            self._restore_batch_norm()
+
+        ## TODO: what is meaning here?
+        # for batch_lr in self.lr_record:
+        #     self.model.history.history.setdefault("lr", []).append(batch_lr)
+
+    def _scheduler(self, epoch):
+
+        swa_epoch = epoch - self.start_epoch
+
+        self.is_swa_epoch = epoch >= self.start_epoch and swa_epoch % self.swa_freq == 0
+        self.is_swa_start_epoch = epoch == self.start_epoch
+        self.is_batch_norm_epoch = epoch == self.epochs - 1 and self.has_batch_norm
+
+    def _average_weights(self, epoch):
+
+        # return [
+        #     (swa_w * ((epoch - self.start_epoch) / self.swa_freq) + w)
+        #     / ((epoch - self.start_epoch) / self.swa_freq + 1)
+        #     for swa_w, w in zip(self.swa_weights, self.model.get_weights())
+        # ]
+        out = {}
+        with torch.no_grad():
+            for name, w in self.model.named_parameters():
+                swa_w = self.swa_weights[name]
+                out[name] = (
+                    swa_w * ((epoch - self.start_epoch) / self.swa_freq) + w.data
+                ) / ((epoch - self.start_epoch) / self.swa_freq + 1)
+        return out
+
+    def _update_lr(self, epoch, batch=None):
+
+        if self.is_batch_norm_epoch:
+            lr = 0
+            # K.set_value(self.model.optimizer.lr, lr)
+            set_learning_rate(lr, self.optimizer)
+        elif self.lr_schedule == "constant":
+            lr = self._constant_schedule(epoch)
+            # K.set_value(self.model.optimizer.lr, lr)
+            set_learning_rate(lr, self.optimizer)
+        elif self.lr_schedule == "cyclic":
+            lr = self._cyclic_schedule(epoch, batch)
+            # K.set_value(self.model.optimizer.lr, lr)
+            set_learning_rate(lr, self.optimizer)
+        self.lr_record.append(lr)
+
+    def _constant_schedule(self, epoch):
+
+        t = epoch / self.start_epoch
+        lr_ratio = self.swa_lr / self.init_lr
+        if t <= 0.5:
+            factor = 1.0
+        elif t <= 0.9:
+            factor = 1.0 - (1.0 - lr_ratio) * (t - 0.5) / 0.4
+        else:
+            factor = lr_ratio
+        return self.init_lr * factor
+
+    def _cyclic_schedule(self, epoch, batch):
+        """Designed after Section 3.1 of Averaging Weights Leads to
+        Wider Optima and Better Generalization(https://arxiv.org/abs/1803.05407)
+        """
+        # steps are mini-batches per epoch, equal to training_samples / batch_size
+        steps = self.steps
+
+        swa_epoch = (epoch - self.start_epoch) % self.swa_freq
+        cycle_length = self.swa_freq * steps
+
+        # batch 0 indexed, so need to add 1
+        i = (swa_epoch * steps) + (batch + 1)
+        if epoch >= self.start_epoch:
+
+            t = (((i - 1) % cycle_length) + 1) / cycle_length
+            return (1 - t) * self.swa_lr2 + t * self.swa_lr
+        else:
+            return self._constant_schedule(epoch)
+
+    def _set_swa_weights(self, epoch):
+
+        # self.model.set_weights(self.swa_weights)
+        for name, p in self.model.named_parameters():
+            p.data.copy_(self.swa_weights[name])
+
+        if self.verbose > 0:
+            print(
+                "\nEpoch %05d: final model weights set to stochastic weight average"
+                % (epoch + 1)
+            )
+
+    def _check_batch_norm(self):
+
+        self.batch_norm_momentums = []
+        self.batch_norm_layers = []
+        self.has_batch_norm = False
+        self.running_bn_epoch = False
+
+        for layer in self.model.modules():
+            if isinstance(layer, _BatchNorm):
+                self.has_batch_norm = True
+                self.batch_norm_momentums.append(layer.momentum)
+                self.batch_norm_layers.append(layer)
+
+        if self.verbose > 0 and self.has_batch_norm:
+            print(
+                "Model uses batch normalization. SWA will require last epoch "
+                "to be a forward pass and will run with no learning rate"
+            )
+
+    def _reset_batch_norm(self):
+
+        for layer in self.batch_norm_layers:
+            # initialized moving mean and
+            # moving var weights
+            layer.reset_running_stats()
+
+    def _restore_batch_norm(self):
+
+        for layer, momentum in zip(self.batch_norm_layers, self.batch_norm_momentums):
+            layer.momentum = momentum
+
 
 
 def export_traces_to_csv(trace_file, csv_file, fieldnames=None):
