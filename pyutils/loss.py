@@ -164,8 +164,7 @@ class AdaptiveLossSoft(torch.nn.modules.loss._Loss):
         return loss
 
 
-
-class FocalLossWithSmoothing(torch.nn.modules.loss._Loss):
+class FocalLossWithSmoothing(torch.nn.Module):
     def __init__(
         self,
         num_classes: int,
@@ -173,7 +172,7 @@ class FocalLossWithSmoothing(torch.nn.modules.loss._Loss):
         lb_smooth: float = 0.1,
         size_average: bool = True,
         ignore_index: int = None,
-        alpha: float = 0.5,
+        alpha: float = None,
     ):
         """
         :param gamma:
@@ -188,7 +187,7 @@ class FocalLossWithSmoothing(torch.nn.modules.loss._Loss):
         self._lb_smooth = lb_smooth
         self._size_average = size_average
         self._ignore_index = ignore_index
-        self._log_softmax = nn.LogSoftmax(dim=1)
+        self._log_softmax = torch.nn.LogSoftmax(dim=-1)
         self._alpha = alpha
 
         if self._num_classes <= 1:
@@ -260,9 +259,13 @@ class FocalLossWithSmoothing(torch.nn.modules.loss._Loss):
         pt = one_hot_key * torch.nn.functional.softmax(logits, -1)
         # pred = logits.data.max(1)[1]
         # fn = (label == 1) & (pred == 0)
-        neg = label == 1
-        alpha = torch.where(neg, 1 + self._alpha, 1 - self._alpha)
-        difficulty_level = alpha.unsqueeze(1) * torch.pow(1 - pt, self._gamma)
+        if self._alpha is not None:
+            neg = label == 1
+            alpha = torch.where(neg, 1 + self._alpha, 1 - self._alpha)
+            difficulty_level = alpha.unsqueeze(1) * torch.pow(1 - pt, self._gamma)
+        else:
+            difficulty_level = torch.pow(1 - pt, self._gamma)
+
         return difficulty_level
 
 
