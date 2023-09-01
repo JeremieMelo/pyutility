@@ -19,6 +19,7 @@ from svglib.svglib import svg2rlg
 
 __all__ = [
     "set_ieee",
+    "set_ms",
     "plotGraph",
     "draw_box_plot",
     "autolabel",
@@ -38,6 +39,9 @@ __all__ = [
 
 def set_ieee():
     plt.rcParams.update({"text.usetex": True, "font.family": "serif", "font.sans-serif": ["Helvetica"]})
+
+def set_ms():
+    plt.rcParams.update({"text.usetex": False, "font.family": "sans-serif", "font.sans-serif": ["Helvetica"]})
 
 
 set_ieee()
@@ -357,6 +361,7 @@ def batch_plot(
     legend_ncol=1,
     # science and ieee settings
     ieee=True,
+    no_latex=False,
     # color map
     cmap=plt.cm.RdYlGn,
 ):
@@ -419,6 +424,9 @@ def batch_plot(
     if ieee:
         """https://github.com/garrettj403/SciencePlots"""
         plt.style.use(["science", "ieee"])
+    if no_latex:
+        plt.style.use(["science", "no-latex"])
+
         # 3.3 inch x 2.5 inch is for single column figure
     if fig is None:
         plt.gca().set_prop_cycle(None)
