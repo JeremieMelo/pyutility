@@ -7,6 +7,7 @@ LastEditTime: 2021-06-06 02:02:14
 """
 
 import numpy as np
+import scienceplots
 from matplotlib import pyplot as plt
 from matplotlib.ticker import FormatStrFormatter, FuncFormatter, LinearLocator
 from mpl_toolkits.axes_grid1 import Divider, Size
@@ -41,7 +42,7 @@ def set_ieee():
     plt.rcParams.update({"text.usetex": True, "font.family": "serif", "font.sans-serif": ["Helvetica"]})
 
 def set_ms():
-    plt.rcParams.update({"text.usetex": False, "font.family": "sans-serif", "font.sans-serif": ["Helvetica"]})
+    plt.rcParams.update({"text.usetex": False, "font.family": "sans-serif", "font.sans-serif": ["Arial"]})
 
 
 set_ieee()
