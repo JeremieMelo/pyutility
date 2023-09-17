@@ -47,7 +47,7 @@ __all__ = [
 
 
 def set_torch_deterministic(random_state: int = 0) -> None:
-    random_state = int(random_state) % (2 ** 32)
+    random_state = int(random_state) % (2**32)
     torch.manual_seed(random_state)
     np.random.seed(random_state)
     if torch.cuda.is_available():
@@ -58,7 +58,7 @@ def set_torch_deterministic(random_state: int = 0) -> None:
 
 
 def set_torch_stochastic():
-    seed = int(time.time() * 1000) % (2 ** 32)
+    seed = int(time.time() * 1000) % (2**32)
     torch.manual_seed(seed)
     np.random.seed(seed)
     if torch.cuda.is_available():
@@ -110,7 +110,7 @@ class BestKModelSaver(object):
         self.truncate = truncate
         self.metric_name = metric_name
         self.format = format
-        self.epsilon = 0.1 ** truncate
+        self.epsilon = 0.1**truncate
         self.model_cache = OrderedDict()
 
     def better_op(self, a, b):
@@ -120,7 +120,7 @@ class BestKModelSaver(object):
             return a <= b - self.epsilon
 
     def __insert_model_record(self, metric, dir, checkpoint_name, epoch=None):
-        metric = round(metric * 10 ** self.truncate) / 10 ** self.truncate
+        metric = round(metric * 10**self.truncate) / 10**self.truncate
         if len(self.model_cache) < self.k:
             new_checkpoint_name = (
                 f"{checkpoint_name}_{self.metric_name}-"
@@ -132,7 +132,9 @@ class BestKModelSaver(object):
             return path, None
         else:
             worst_metric, worst_epoch = sorted(
-                list(self.model_cache.values()), key=lambda x: x[0], reverse=False if self.descend else True
+                list(self.model_cache.values()),
+                key=lambda x: x[0],
+                reverse=False if self.descend else True,
             )[0]
             if self.better_op(metric, worst_metric):
                 del_checkpoint_name = (
@@ -144,7 +146,10 @@ class BestKModelSaver(object):
                 try:
                     del self.model_cache[del_path]
                 except:
-                    print("[W] Cannot remove checkpoint: {} from cache".format(del_path), flush=True)
+                    print(
+                        "[W] Cannot remove checkpoint: {} from cache".format(del_path),
+                        flush=True,
+                    )
                 new_checkpoint_name = (
                     f"{checkpoint_name}_{self.metric_name}-"
                     + self.format.format(metric)
@@ -160,6 +165,18 @@ class BestKModelSaver(object):
             #     return path, None
             else:
                 return None, None
+
+    def get_topk_model_path(self, topk: int = 1):
+        if topk <= 0:
+            return []
+        if topk > len(self.model_cache):
+            topk = len(self.model_cache)
+        return [
+            i[0]
+            for i in sorted(
+                self.model_cache.items(), key=lambda x: x[1][0], reverse=self.descend
+            )[:topk]
+        ]
 
     def save_model(
         self,
@@ -187,7 +204,9 @@ class BestKModelSaver(object):
         checkpoint_name = os.path.splitext(os.path.basename(path))[0]
         if isinstance(metric, torch.Tensor):
             metric = metric.data.item()
-        new_path, del_path = self.__insert_model_record(metric, dir, checkpoint_name, epoch)
+        new_path, del_path = self.__insert_model_record(
+            metric, dir, checkpoint_name, epoch
+        )
 
         if del_path is not None:
             try:
@@ -218,14 +237,18 @@ class BestKModelSaver(object):
                 else:
                     saved_dict = {}
                 if save_model:
-                    saved_dict.update({"model": model, "state_dict": model.state_dict()})
+                    saved_dict.update(
+                        {"model": model, "state_dict": model.state_dict()}
+                    )
                     torch.save(saved_dict, new_path)
                 else:
                     saved_dict.update({"model": None, "state_dict": model.state_dict()})
                     torch.save(saved_dict, new_path)
                 if print_msg:
                     if self.descend:
-                        best_list = list(reversed(sorted(list(self.model_cache.values()))))
+                        best_list = list(
+                            reversed(sorted(list(self.model_cache.values())))
+                        )
                     else:
                         best_list = list(sorted(list(self.model_cache.values())))
 
@@ -237,9 +260,15 @@ class BestKModelSaver(object):
                 if print_msg:
                     print(f"[E] Model failed to be saved to {new_path}", flush=True)
                 traceback.print_exc(e)
+        return new_path
 
 
-def load_model(model, path="./checkpoint/model.pt", ignore_size_mismatch: bool = False, print_msg=True):
+def load_model(
+    model,
+    path="./checkpoint/model.pt",
+    ignore_size_mismatch: bool = False,
+    print_msg=True,
+):
     """Load PyTorch model in path
 
     Args:
@@ -265,9 +294,13 @@ def load_model(model, path="./checkpoint/model.pt", ignore_size_mismatch: bool =
         cur_state_dict = model.state_dict()
         if ignore_size_mismatch:
             size_mismatch_dict = set(
-                key for key in common_dict if model.state_dict()[key].size() != state_dict[key].size()
+                key
+                for key in common_dict
+                if model.state_dict()[key].size() != state_dict[key].size()
             )
-            print(f"[W] {size_mismatch_dict} are ignored due to size mismatch", flush=True)
+            print(
+                f"[W] {size_mismatch_dict} are ignored due to size mismatch", flush=True
+            )
             common_dict = common_dict - size_mismatch_dict
 
         cur_state_dict.update({key: state_dict[key] for key in common_dict})
@@ -301,7 +334,10 @@ class ThresholdScheduler(object):
     """Intepolation between begin point and end point. step must be within two endpoints"""
 
     def __init__(self, step_beg, step_end, thres_beg, thres_end, mode="tanh"):
-        assert mode in {"linear", "tanh"}, "Threshold scheduler only supports linear and tanh modes"
+        assert mode in {
+            "linear",
+            "tanh",
+        }, "Threshold scheduler only supports linear and tanh modes"
         self.mode = mode
         self.step_beg = step_beg
         self.step_end = step_end
@@ -316,7 +352,9 @@ class ThresholdScheduler(object):
         if self.mode == "linear":
             return lambda x: (self.thres_end - self.thres_beg) * x + self.thres_beg
         elif self.mode == "tanh":
-            x = self.normalize(np.arange(self.step_beg, self.step_end + 1).astype(np.float32))
+            x = self.normalize(
+                np.arange(self.step_beg, self.step_end + 1).astype(np.float32)
+            )
             y = np.tanh(x) * (self.thres_end - self.thres_beg) + self.thres_beg
             return interpolate.interp1d(x, y)
 
@@ -355,7 +393,10 @@ class ThresholdScheduler_tf(object):
             self.descend = True
 
         self.pruning_schedule = tfmot.sparsity.keras.PolynomialDecay(
-            initial_sparsity=0, final_sparsity=0.9999999, begin_step=self.step_beg, end_step=self.step_end
+            initial_sparsity=0,
+            final_sparsity=0.9999999,
+            begin_step=self.step_beg,
+            end_step=self.step_end,
         )
 
     def __call__(self, x):
@@ -452,7 +493,6 @@ class EMA(object):
         return new_average.data
 
 
-
 class SWA(torch.nn.Module):
     """Stochastic Weight Averging.
 
@@ -484,7 +524,6 @@ class SWA(torch.nn.Module):
         batch_size=None,
         verbose=0,
     ):
-
         super().__init__()
         self.model = model
         self.optimizer = optimizer
@@ -527,7 +566,6 @@ class SWA(torch.nn.Module):
             raise ValueError('"swa_lr" must be lower than "swa_lr2".')
 
     def on_train_begin(self):
-
         self.lr_record = []
 
         if self.start_epoch >= self.epochs - 1:
@@ -592,13 +630,11 @@ class SWA(torch.nn.Module):
                 )
 
     def on_batch_begin(self, batch):
-
         # update lr each batch for cyclic lr schedule
         if self.lr_schedule == "cyclic":
             self._update_lr(self.current_epoch, batch)
 
         if self.is_batch_norm_epoch:
-
             batch_size = self.batch_size
             # this is for tensorflow momentum, applied to the running stat
             # momentum = batch_size / (batch * batch_size + batch_size)
@@ -610,7 +646,6 @@ class SWA(torch.nn.Module):
                 layer.momentum = momentum
 
     def on_epoch_end(self, epoch):
-
         if self.is_swa_start_epoch:
             self.swa_start_epoch = epoch
 
@@ -618,7 +653,6 @@ class SWA(torch.nn.Module):
             self.swa_weights = self._average_weights(epoch)
 
     def on_train_end(self):
-
         if not self.has_batch_norm:
             self._set_swa_weights(self.epochs)
         else:
@@ -629,7 +663,6 @@ class SWA(torch.nn.Module):
         #     self.model.history.history.setdefault("lr", []).append(batch_lr)
 
     def _scheduler(self, epoch):
-
         swa_epoch = epoch - self.start_epoch
 
         self.is_swa_epoch = epoch >= self.start_epoch and swa_epoch % self.swa_freq == 0
@@ -637,7 +670,6 @@ class SWA(torch.nn.Module):
         self.is_batch_norm_epoch = epoch == self.epochs - 1 and self.has_batch_norm
 
     def _average_weights(self, epoch):
-
         # return [
         #     (swa_w * ((epoch - self.start_epoch) / self.swa_freq) + w)
         #     / ((epoch - self.start_epoch) / self.swa_freq + 1)
@@ -653,7 +685,6 @@ class SWA(torch.nn.Module):
         return out
 
     def _update_lr(self, epoch, batch=None):
-
         if self.is_batch_norm_epoch:
             lr = 0
             # K.set_value(self.model.optimizer.lr, lr)
@@ -669,7 +700,6 @@ class SWA(torch.nn.Module):
         self.lr_record.append(lr)
 
     def _constant_schedule(self, epoch):
-
         t = epoch / self.start_epoch
         lr_ratio = self.swa_lr / self.init_lr
         if t <= 0.5:
@@ -693,14 +723,12 @@ class SWA(torch.nn.Module):
         # batch 0 indexed, so need to add 1
         i = (swa_epoch * steps) + (batch + 1)
         if epoch >= self.start_epoch:
-
             t = (((i - 1) % cycle_length) + 1) / cycle_length
             return (1 - t) * self.swa_lr2 + t * self.swa_lr
         else:
             return self._constant_schedule(epoch)
 
     def _set_swa_weights(self, epoch):
-
         # self.model.set_weights(self.swa_weights)
         for name, p in self.model.named_parameters():
             p.data.copy_(self.swa_weights[name])
@@ -712,7 +740,6 @@ class SWA(torch.nn.Module):
             )
 
     def _check_batch_norm(self):
-
         self.batch_norm_momentums = []
         self.batch_norm_layers = []
         self.has_batch_norm = False
@@ -731,17 +758,14 @@ class SWA(torch.nn.Module):
             )
 
     def _reset_batch_norm(self):
-
         for layer in self.batch_norm_layers:
             # initialized moving mean and
             # moving var weights
             layer.reset_running_stats()
 
     def _restore_batch_norm(self):
-
         for layer, momentum in zip(self.batch_norm_layers, self.batch_norm_momentums):
             layer.momentum = momentum
-
 
 
 def export_traces_to_csv(trace_file, csv_file, fieldnames=None):
@@ -759,7 +783,9 @@ def export_traces_to_csv(trace_file, csv_file, fieldnames=None):
             row = {}
             for field in fieldnames:
                 value = traces[field][idx] if idx < len(traces[field]) else ""
-                row[field] = value.data.item() if isinstance(value, torch.Tensor) else value
+                row[field] = (
+                    value.data.item() if isinstance(value, torch.Tensor) else value
+                )
             writer.writerow(row)
 
 
