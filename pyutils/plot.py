@@ -559,10 +559,12 @@ def batch_plot(
             # ax.set_xlim([xrange[0]-dx, xrange[1]+dy])
             # ax.set_ylim([yrange[0]-dx, yrange[1]+dy])
 
-        for tick in ax.xaxis.get_major_ticks():
-            tick.label.set_fontsize(fontsize)
-        for tick in ax.yaxis.get_major_ticks():
-            tick.label.set_fontsize(fontsize)
+        plt.xticks(fontsize=fontsize)
+        plt.yticks(fontsize=fontsize)
+        # for tick in ax.xaxis.get_major_ticks():
+        #     tick.label.set_fontsize(fontsize)
+        # for tick in ax.yaxis.get_major_ticks():
+        #     tick.label.set_fontsize(fontsize)
         # if(xscale not in {"linear", "log"}):
         #     xscale = "linear"
         # if(yscale not in {"linear", "log"}):
