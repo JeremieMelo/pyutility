@@ -150,6 +150,13 @@ class ActQuantizer_LSQ(nn.Module):
 
         alpha = grad_scale(self.alpha, g)  # scale alpha's gradient by g
 
+        if len(x.shape) == 2:  # linear layer
+            alpha = alpha.unsqueeze(0)
+        elif len(x.shape) == 4:  # conv layer
+            alpha = alpha.unsqueeze(0).unsqueeze(2).unsqueeze(3)
+        else:
+            raise NotImplementedError
+
         if self.offset:
             zero_point = (
                 self.zero_point.round() - self.zero_point
@@ -160,16 +167,10 @@ class ActQuantizer_LSQ(nn.Module):
                 if len(x.shape) == 2
                 else zero_point.unsqueeze(0).unsqueeze(2).unsqueeze(3)
             )
+            x = round_pass((x / alpha + zero_point).clamp(self.Qn, self.Qp))
+            x = (x - zero_point) * alpha
         else:
-            zero_point = 0
-
-        if len(x.shape) == 2:  # linear layer
-            alpha = alpha.unsqueeze(0)
-        elif len(x.shape) == 4:  # conv layer
-            alpha = alpha.unsqueeze(0).unsqueeze(2).unsqueeze(3)
-
-        x = round_pass((x / alpha + zero_point).clamp(self.Qn, self.Qp))
-        x = (x - zero_point) * alpha
+            x = round_pass((x / alpha).clamp(self.Qn, self.Qp)).mul(alpha)
 
         return x
 
@@ -250,6 +251,13 @@ class WeightQuantizer_LSQ(nn.Module):
 
         alpha = grad_scale(self.alpha, g)  # scale alpha's gradient by g
 
+        if len(x.shape) == 2:  # linear layer
+            alpha = alpha[..., None]
+        elif len(x.shape) == 4:  # conv layer
+            alpha = alpha[..., None, None, None]
+        else:
+            raise NotImplementedError
+
         if self.offset:
             zero_point = round_pass(self.zero_point)
             zero_point = grad_scale(zero_point, g)
@@ -258,20 +266,9 @@ class WeightQuantizer_LSQ(nn.Module):
                 if len(x.shape) == 2
                 else zero_point[..., None, None, None]
             )
+            x = round_pass((x / alpha + zero_point).clamp(self.Qn, self.Qp))
+            x = (x - zero_point) * alpha
         else:
-            zero_point = 0
-
-        if len(x.shape) == 2:  # linear layer
-            alpha = alpha[..., None]
-        elif len(x.shape) == 4:  # conv layer
-            alpha = alpha[..., None, None, None]
-        else:
-            raise NotImplementedError
-        
-        x = round_pass((x / alpha + zero_point).clamp(self.Qn, self.Qp))
-        if self.offset:
-            x = x - zero_point
-
-        x = x * alpha
+            x = round_pass((x / alpha).clamp(self.Qn, self.Qp)).mul(alpha)
 
         return x
