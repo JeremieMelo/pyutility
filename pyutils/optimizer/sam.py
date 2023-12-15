@@ -22,6 +22,7 @@ class SAM(torch.optim.Optimizer):
 
         self.base_optimizer = base_optimizer(self.param_groups, **kwargs)
         self.param_groups = self.base_optimizer.param_groups
+        self._step_count = 0
 
     @torch.no_grad()
     def first_step(self, zero_grad=False):
