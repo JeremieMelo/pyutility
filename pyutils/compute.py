@@ -567,14 +567,15 @@ def gen_gaussian_filter2d_cpu(size: int = 3, std: float = 0.286) -> np.ndarray:
     return kernel
 
 
-def gen_gaussian_filter2d(size: int = 3, std: float = 0.286, device: Device = torch.device("cuda")) -> Tensor:
+def gen_gaussian_filter2d(size: int = 3, std: float = 0.286, center_one: bool=True, device: Device = torch.device("cuda")) -> Tensor:
     assert size % 2 == 1, f"Gaussian filter can only be odd size, but size={size} is given."
     if std > 1e-8:
         ax = torch.linspace(-(size - 1) / 2.0, (size - 1) / 2.0, size, dtype=torch.float32, device=device)
         xx, yy = torch.meshgrid(ax, ax)
         kernel = torch.exp(-0.5 / (std ** 2) * (xx.square() + yy.square()))
         kernel = kernel.div_(kernel.sum())
-        kernel[size // 2, size // 2] = 1
+        if center_one:
+            kernel[size // 2, size // 2] = 1
     else:
         kernel = torch.zeros(size, size, dtype=torch.float32, device=device)
         kernel[size // 2, size // 2] = 1
