@@ -6,6 +6,7 @@ LastEditors: Jiaqi Gu (jqgu@utexas.edu)
 LastEditTime: 2021-06-06 02:17:08
 """
 
+import contextlib
 import logging
 from functools import lru_cache
 from typing import Callable, Dict, List, Optional, Tuple, Union
@@ -65,6 +66,7 @@ __all__ = [
     "gaussian",
     "lowrank_decompose",
     "get_conv2d_flops",
+    "interp1d",
 ]
 
 
@@ -121,9 +123,13 @@ def complex_mult(X: Tensor, Y: Tensor) -> Tensor:
         Tensor: tensor with the same type as input
     """
     if not torch.is_complex(X) and not torch.is_complex(Y):
-        assert X.shape[-1] == 2 and Y.shape[-1] == 2, "Last dimension of real-valued tensor must be 2"
+        assert (
+            X.shape[-1] == 2 and Y.shape[-1] == 2
+        ), "Last dimension of real-valued tensor must be 2"
         if hasattr(torch, "view_as_complex"):
-            return torch.view_as_real(torch.view_as_complex(X) * torch.view_as_complex(Y))
+            return torch.view_as_real(
+                torch.view_as_complex(X) * torch.view_as_complex(Y)
+            )
         else:
             return torch.stack(
                 (
@@ -142,8 +148,12 @@ def complex_matvec_mult(W: Tensor, X: Tensor) -> Tensor:
 
 def complex_matmul(X: Tensor, Y: Tensor) -> Tensor:
     assert X.shape[-1] == 2 and Y.shape[-1] == 2, "Last dimension must be 2"
-    if torch.__version__ >= "1.8" or (torch.__version__ >= "1.7" and X.shape[:-3] == Y.shape[:-3]):
-        return torch.view_as_real(torch.matmul(torch.view_as_complex(X), torch.view_as_complex(Y)))
+    if torch.__version__ >= "1.8" or (
+        torch.__version__ >= "1.7" and X.shape[:-3] == Y.shape[:-3]
+    ):
+        return torch.view_as_real(
+            torch.matmul(torch.view_as_complex(X), torch.view_as_complex(Y))
+        )
 
     return torch.stack(
         [
@@ -155,7 +165,9 @@ def complex_matmul(X: Tensor, Y: Tensor) -> Tensor:
 
 
 def expi(x: Tensor) -> Tensor:
-    if torch.__version__ >= "1.8" or (torch.__version__ >= "1.7" and not x.requires_grad):
+    if torch.__version__ >= "1.8" or (
+        torch.__version__ >= "1.7" and not x.requires_grad
+    ):
         return torch.exp(1j * x)
     else:
         return x.cos().type(torch.cfloat) + 1j * x.sin().type(torch.cfloat)
@@ -215,7 +227,9 @@ def get_complex_energy(x: Tensor) -> Tensor:
     return x[..., 0] * x[..., 0] + x[..., 1] * x[..., 1]
 
 
-def absclamp(x: Tensor, min: Optional[float] = None, max: Optional[float] = None) -> Tensor:
+def absclamp(
+    x: Tensor, min: Optional[float] = None, max: Optional[float] = None
+) -> Tensor:
     if isinstance(x, torch.Tensor):
         mag = x.norm(p=2, dim=-1).clamp(min=min, max=max)
         angle = torch.view_as_complex(x).angle()
@@ -230,7 +244,9 @@ def absclamp(x: Tensor, min: Optional[float] = None, max: Optional[float] = None
     return x
 
 
-def absclamp_(x: Tensor, min: Optional[float] = None, max: Optional[float] = None) -> Tensor:
+def absclamp_(
+    x: Tensor, min: Optional[float] = None, max: Optional[float] = None
+) -> Tensor:
     if isinstance(x, torch.Tensor):
         y = torch.view_as_complex(x)
         mag = y.abs().clamp(min=min, max=max)
@@ -267,7 +283,11 @@ def im2col_2d(
 
         h_out, w_out = int(h_out), int(w_out)
         X_col = torch.nn.functional.unfold(
-            X.view(1, -1, h_x, w_x), h_filter, dilation=1, padding=padding, stride=stride
+            X.view(1, -1, h_x, w_x),
+            h_filter,
+            dilation=1,
+            padding=padding,
+            stride=stride,
         ).view(n_x, -1, h_out * w_out)
         X_col = X_col.permute(1, 2, 0).contiguous().view(X_col.size(1), -1)
     else:
@@ -284,7 +304,9 @@ def check_identity_matrix(W: Tensor) -> bool:
     else:
         assert 0, "[E] Array type not supported, must be numpy.ndarray or torch.Tensor"
 
-    return (W_numpy.shape[0] == W_numpy.shape[1]) and np.allclose(W_numpy, np.eye(W_numpy.shape[0]))
+    return (W_numpy.shape[0] == W_numpy.shape[1]) and np.allclose(
+        W_numpy, np.eye(W_numpy.shape[0])
+    )
 
 
 def check_unitary_matrix(W: Tensor) -> bool:
@@ -318,7 +340,9 @@ def check_equal_tensor(W1: Tensor, W2: Tensor) -> bool:
 
 def batch_diag(x: Tensor) -> Tensor:
     # x[..., N, N] -> [..., N]
-    assert len(x.shape) >= 2, f"At least 2-D array/tensor is expected, but got shape {x.shape}"
+    assert (
+        len(x.shape) >= 2
+    ), f"At least 2-D array/tensor is expected, but got shape {x.shape}"
     if isinstance(x, np.ndarray):
         size = list(x.shape)
         x = x.reshape(size[:-2] + [size[-2] * size[-1]])
@@ -339,7 +363,10 @@ def batch_eye_cpu(N: int, batch_shape: List[int], dtype: np.dtype) -> np.ndarray
 
 
 def batch_eye(
-    N: int, batch_shape: List[int], dtype: torch.dtype, device: Device = torch.device("cuda")
+    N: int,
+    batch_shape: List[int],
+    dtype: torch.dtype,
+    device: Device = torch.device("cuda"),
 ) -> torch.Tensor:
     x = torch.zeros(list(batch_shape) + [N, N], dtype=dtype, device=device)
     x.view(-1, N * N)[..., :: N + 1] = 1
@@ -460,7 +487,10 @@ def gen_boolean_mask_cpu(size: _size, true_prob: float) -> np.ndarray:
 
 
 def gen_boolean_mask(
-    size: _size, true_prob: float, random_state: Optional[int] = None, device: Device = torch.device("cuda")
+    size: _size,
+    true_prob: float,
+    random_state: Optional[int] = None,
+    device: Device = torch.device("cuda"),
 ) -> Tensor:
     assert 0 <= true_prob <= 1, f"[E] Wrong probability for True"
     if true_prob > 1 - 1e-9:
@@ -470,7 +500,9 @@ def gen_boolean_mask(
     if random_state is not None:
         with torch.random.fork_rng():
             torch.random.manual_seed(random_state)
-            return torch.empty(size, dtype=torch.bool, device=device).bernoulli_(true_prob)
+            return torch.empty(size, dtype=torch.bool, device=device).bernoulli_(
+                true_prob
+            )
     else:
         return torch.empty(size, dtype=torch.bool, device=device).bernoulli_(true_prob)
 
@@ -536,12 +568,13 @@ def gen_gaussian_noise(
         else:
             a = (trunc_range[0] - noise_mean) / noise_std
             b = (trunc_range[1] - noise_mean) / noise_std
-            noises = truncnorm.rvs(a, b, loc=noise_mean, scale=noise_std, size=W.shape, random_state=None)
+            noises = truncnorm.rvs(
+                a, b, loc=noise_mean, scale=noise_std, size=W.shape, random_state=None
+            )
     elif isinstance(W, torch.Tensor):
         if not trunc_range:
             noises = torch.zeros_like(W).normal_(mean=noise_mean, std=noise_std)
         else:
-
             size = W.shape
             tmp = W.new_empty(size + (4,)).normal_()
             a = (trunc_range[0] - noise_mean) / noise_std
@@ -558,7 +591,9 @@ def gen_gaussian_noise(
 
 
 def gen_gaussian_filter2d_cpu(size: int = 3, std: float = 0.286) -> np.ndarray:
-    assert size % 2 == 1, f"Gaussian filter can only be odd size, but size={size} is given."
+    assert (
+        size % 2 == 1
+    ), f"Gaussian filter can only be odd size, but size={size} is given."
     ax = np.linspace(-(size - 1) / 2.0, (size - 1) / 2.0, size)
     xx, yy = np.meshgrid(ax, ax)
     kernel = np.exp(-0.5 / np.square(std) * (np.square(xx) + np.square(yy)))
@@ -567,12 +602,25 @@ def gen_gaussian_filter2d_cpu(size: int = 3, std: float = 0.286) -> np.ndarray:
     return kernel
 
 
-def gen_gaussian_filter2d(size: int = 3, std: float = 0.286, center_one: bool=True, device: Device = torch.device("cuda")) -> Tensor:
-    assert size % 2 == 1, f"Gaussian filter can only be odd size, but size={size} is given."
+def gen_gaussian_filter2d(
+    size: int = 3,
+    std: float = 0.286,
+    center_one: bool = True,
+    device: Device = torch.device("cuda"),
+) -> Tensor:
+    assert (
+        size % 2 == 1
+    ), f"Gaussian filter can only be odd size, but size={size} is given."
     if std > 1e-8:
-        ax = torch.linspace(-(size - 1) / 2.0, (size - 1) / 2.0, size, dtype=torch.float32, device=device)
+        ax = torch.linspace(
+            -(size - 1) / 2.0,
+            (size - 1) / 2.0,
+            size,
+            dtype=torch.float32,
+            device=device,
+        )
         xx, yy = torch.meshgrid(ax, ax)
-        kernel = torch.exp(-0.5 / (std ** 2) * (xx.square() + yy.square()))
+        kernel = torch.exp(-0.5 / (std**2) * (xx.square() + yy.square()))
         kernel = kernel.div_(kernel.sum())
         if center_one:
             kernel[size // 2, size // 2] = 1
@@ -591,7 +639,11 @@ def add_gaussian_noise(
     random_state: Optional[int] = None,
 ) -> Union[Tensor, np.ndarray]:
     noises = gen_gaussian_noise(
-        W, noise_mean=noise_mean, noise_std=noise_std, trunc_range=trunc_range, random_state=random_state
+        W,
+        noise_mean=noise_mean,
+        noise_std=noise_std,
+        trunc_range=trunc_range,
+        random_state=random_state,
     )
     output = W + noises
     return output
@@ -605,7 +657,11 @@ def add_gaussian_noise_(
     random_state: Optional[int] = None,
 ) -> Union[Tensor, np.ndarray]:
     noises = gen_gaussian_noise(
-        W, noise_mean=noise_mean, noise_std=noise_std, trunc_range=trunc_range, random_state=random_state
+        W,
+        noise_mean=noise_mean,
+        noise_std=noise_std,
+        trunc_range=trunc_range,
+        random_state=random_state,
     )
     if isinstance(W, np.ndarray):
         W += noises
@@ -635,7 +691,9 @@ def add_gaussian_noise_cpu(
     else:
         a = (trunc_range[0] - noise_mean) / noise_std
         b = (trunc_range[1] - noise_mean) / noise_std
-        noises = truncnorm.rvs(a, b, loc=noise_mean, scale=noise_std, size=W_numpy.shape, random_state=None)
+        noises = truncnorm.rvs(
+            a, b, loc=noise_mean, scale=noise_std, size=W_numpy.shape, random_state=None
+        )
     return W_numpy + noises
 
 
@@ -647,7 +705,9 @@ def circulant_multiply(c: Tensor, x: Tensor) -> Tensor:
     Return:
         prod: (batch_size, n) or (n, )
     """
-    return torch.irfft(complex_mult(torch.rfft(c, 1), torch.rfft(x, 1)), 1, signal_sizes=(c.shape[-1],))
+    return torch.irfft(
+        complex_mult(torch.rfft(c, 1), torch.rfft(x, 1)), 1, signal_sizes=(c.shape[-1],)
+    )
 
 
 def calc_diagonal_hessian(weight_dict, loss, model):
@@ -661,7 +721,9 @@ def calc_diagonal_hessian(weight_dict, loss, model):
     return hessian_dict
 
 
-def calc_jacobian(weight_dict: Dict[str, Tensor], loss: Callable, model: nn.Module) -> Dict[str, Tensor]:
+def calc_jacobian(
+    weight_dict: Dict[str, Tensor], loss: Callable, model: nn.Module
+) -> Dict[str, Tensor]:
     model.zero_grad()
     jacobian_dict = {}
     for name, weight in weight_dict.items():
@@ -677,7 +739,7 @@ def polynomial(x: Tensor, coeff: Tensor) -> Tensor:
     #     xs.append(xs[-1]*x)
     # xs.reverse()
     # x = torch.stack(xs, dim=-1)
-    x = torch.stack([x ** i for i in range(coeff.size(0) - 1, 0, -1)], dim=-1)
+    x = torch.stack([x**i for i in range(coeff.size(0) - 1, 0, -1)], dim=-1)
     out = (x * coeff[:-1]).sum(dim=-1) + coeff[-1].data.item()
     return out
 
@@ -687,7 +749,11 @@ def gaussian(x: Tensor, coeff: Tensor) -> Tensor:
     ## a * exp(-((x-b)/c)^2) + ...
     size = x.size()
     x = x.view(-1).unsqueeze(0)
-    x = (coeff[:, 0:1] * torch.exp(-((x - coeff[:, 1:2]) / coeff[:, 2:3]).square())).sum(dim=0).view(size)
+    x = (
+        (coeff[:, 0:1] * torch.exp(-((x - coeff[:, 1:2]) / coeff[:, 2:3]).square()))
+        .sum(dim=0)
+        .view(size)
+    )
     return x
 
 
@@ -750,9 +816,201 @@ def get_conv2d_flops(
         (input_shape[2] - conv_filter[2] + 2 * padding[0]) / stride[0]
     ) + 1  # for rows
     # multiplying with cols
-    num_instances_per_filter *= ((input_shape[3] - conv_filter[3] + 2 * padding[1]) / stride[1]) + 1
+    num_instances_per_filter *= (
+        (input_shape[3] - conv_filter[3] + 2 * padding[1]) / stride[1]
+    ) + 1
 
     flops_per_filter = num_instances_per_filter * flops_per_instance
     # multiply with number of filters adn batch
     total_flops_per_layer = flops_per_filter * conv_filter[0] * input_shape[0]
     return total_flops_per_layer
+
+
+class Interp1d(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, x, y, xnew, out=None):
+        """
+        Batched Linear 1D interpolation on the GPU for Pytorch.
+        This function returns interpolated values of a set of 1-D functions at
+        the desired query points `xnew`. Any point exceeds the border of [xmin, xmax]
+        will be filled with 0 and no grad.
+        This function is working similarly to Matlab™ or scipy functions with
+        the `linear` interpolation mode on, except that it parallelises over
+        any number of desired interpolation problems.
+        The code will run on GPU if all the tensors provided are on a cuda
+        device.
+        https://github.com/aliutkus/torchinterp1d
+
+        Parameters
+        ----------
+        x : (N, ) or (D, N) Pytorch Tensor
+            A 1-D or 2-D tensor of real values.
+        y : (N,) or (D, N) Pytorch Tensor
+            A 1-D or 2-D tensor of real values. The length of `y` along its
+            last dimension must be the same as that of `x`
+        xnew : (P,) or (D, P) Pytorch Tensor
+            A 1-D or 2-D tensor of real values. `xnew` can only be 1-D if
+            _both_ `x` and `y` are 1-D. Otherwise, its length along the first
+            dimension must be the same as that of whichever `x` and `y` is 2-D.
+        out : Pytorch Tensor, same shape as `xnew`
+            Tensor for the output. If None: allocated automatically.
+
+        """
+        # making the vectors at least 2D
+        is_flat = {}
+        require_grad = {}
+        v = {}
+        device = []
+        eps = torch.finfo(y.dtype).eps
+        for name, vec in {"x": x, "y": y, "xnew": xnew}.items():
+            assert len(vec.shape) <= 2, "interp1d: all inputs must be " "at most 2-D."
+            if len(vec.shape) == 1:
+                v[name] = vec[None, :]
+            else:
+                v[name] = vec
+            is_flat[name] = v[name].shape[0] == 1
+            require_grad[name] = vec.requires_grad
+            device = list(set(device + [str(vec.device)]))
+        assert len(device) == 1, "All parameters must be on the same device."
+        device = device[0]
+
+        # Checking for the dimensions
+        assert v["x"].shape[1] == v["y"].shape[1] and (
+            v["x"].shape[0] == v["y"].shape[0]
+            or v["x"].shape[0] == 1
+            or v["y"].shape[0] == 1
+        ), (
+            "x and y must have the same number of columns, and either "
+            "the same number of row or one of them having only one "
+            "row."
+        )
+
+        reshaped_xnew = False
+        if (
+            (v["x"].shape[0] == 1)
+            and (v["y"].shape[0] == 1)
+            and (v["xnew"].shape[0] > 1)
+        ):
+            # if there is only one row for both x and y, there is no need to
+            # loop over the rows of xnew because they will all have to face the
+            # same interpolation problem. We should just stack them together to
+            # call interp1d and put them back in place afterwards.
+            original_xnew_shape = v["xnew"].shape
+            v["xnew"] = v["xnew"].contiguous().view(1, -1)
+            reshaped_xnew = True
+
+        # identify the dimensions of output and check if the one provided is ok
+        D = max(v["x"].shape[0], v["xnew"].shape[0])
+        shape_ynew = (D, v["xnew"].shape[-1])
+        if out is not None:
+            if out.numel() != shape_ynew[0] * shape_ynew[1]:
+                # The output provided is of incorrect shape.
+                # Going for a new one
+                out = None
+            else:
+                ynew = out.reshape(shape_ynew)
+        if out is None:
+            ynew = torch.zeros(*shape_ynew, device=device)
+
+        # moving everything to the desired device in case it was not there
+        # already (not handling the case things do not fit entirely, user will
+        # do it if required.)
+        for name in v:
+            v[name] = v[name].to(device)
+
+        # calling searchsorted on the x values.
+        ind = ynew.long()
+
+        # expanding xnew to match the number of rows of x in case only one xnew is
+        # provided
+        if v["xnew"].shape[0] == 1:
+            v["xnew"] = v["xnew"].expand(v["x"].shape[0], -1)
+
+        # the squeeze is because torch.searchsorted does accept either a nd with
+        # matching shapes for x and xnew or a 1d vector for x. Here we would
+        # have (1,len) for x sometimes
+        torch.searchsorted(
+            v["x"].contiguous().squeeze(), v["xnew"].contiguous(), out=ind
+        )
+
+        # the `-1` is because searchsorted looks for the index where the values
+        # must be inserted to preserve order. And we want the index of the
+        # preceeding value.
+        ind -= 1
+        # we clamp the index, because the number of intervals is x.shape-1,
+        # and the left neighbour should hence be at most number of intervals
+        # -1, i.e. number of columns in x -2
+        ind = torch.clamp(ind, 0, v["x"].shape[1] - 1 - 1)
+
+        # helper function to select stuff according to the found indices.
+        def sel(name):
+            if is_flat[name]:
+                return v[name].contiguous().view(-1)[ind]
+            return torch.gather(v[name], 1, ind)
+
+        # activating gradient storing for everything now
+        enable_grad = False
+        saved_inputs = []
+        for name in ["x", "y", "xnew"]:
+            if require_grad[name]:
+                enable_grad = True
+                saved_inputs += [v[name]]
+            else:
+                saved_inputs += [
+                    None,
+                ]
+        # assuming x are sorted in the dimension 1, computing the slopes for
+        # the segments
+        is_flat["slopes"] = is_flat["x"]
+        # now we have found the indices of the neighbors, we start building the
+        # output. Hence, we start also activating gradient tracking
+        with torch.enable_grad() if enable_grad else contextlib.suppress():
+            v["slopes"] = (v["y"][:, 1:] - v["y"][:, :-1]) / (
+                eps + (v["x"][:, 1:] - v["x"][:, :-1])
+            )
+
+            # now build the linear interpolation
+            ynew = sel("y") + sel("slopes") * (v["xnew"] - sel("x"))
+
+            mask = (v["xnew"] > v["x"][:, -1:]) | (v["xnew"] < v["x"][:, :1]) # exceed left/right border
+            ynew = ynew.masked_fill(mask, 0)
+
+            if reshaped_xnew:
+                ynew = ynew.view(original_xnew_shape)
+
+            
+        ctx.save_for_backward(ynew, *saved_inputs)
+        return ynew
+
+    @staticmethod
+    def backward(ctx, grad_out):
+        inputs = ctx.saved_tensors[1:]
+        gradients = torch.autograd.grad(
+            ctx.saved_tensors[0],
+            [i for i in inputs if i is not None],
+            grad_out,
+            retain_graph=True,
+        )
+        result = [
+            None,
+        ] * 5
+        pos = 0
+        for index in range(len(inputs)):
+            if inputs[index] is not None:
+                result[index] = gradients[pos]
+                pos += 1
+        return (*result,)
+
+def interp1d(x: Tensor, y: Tensor, xnew: Tensor, out: Tensor | None = None) -> Tensor:
+    """numpy.interp for pytorch. Only 1D
+
+    Args:
+        x (Tensor): input vector x coordinates
+        y (Tensor): input vector y coordinates
+        xnew (Tensor): new x coordinates to be interpolated
+        out (Tensor, optional): output tensor. Defaults to None.
+
+    Returns:
+        Tensor: interpolated y coordinates
+    """
+    return Interp1d.apply(x, y, xnew, out)
