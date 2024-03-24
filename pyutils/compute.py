@@ -375,36 +375,33 @@ def batch_eye(
 
 def merge_chunks(x: Tensor, complex: bool = False) -> Tensor:
     # x = [H, W, B, B] or [H, W, B, B, 2]
+    h, w, bs0, bs1 = x.shape[0], x.shape[1], x.shape[2], x.shape[3]
     if isinstance(x, torch.Tensor):
         if not complex:
-            h, w, bs = x.size(0), x.size(1), x.size(2)
-            x = x.permute(0, 2, 1, 3).contiguous()  # x = [h, bs, w, bs]
-            x = x.view(h * bs, w * bs)
+            x = x.permute(0, 2, 1, 3)  # x = [h, bs, w, bs]
+            x = x.reshape(h * bs0, w * bs1)
         else:
-            h, w, bs = x.size(0), x.size(1), x.size(2)
-            x = x.permute(0, 2, 1, 3, 4).contiguous()  # x = [h, bs, w, bs, 2]
-            x = x.view(h * bs, w * bs, 2)
+            x = x.permute(0, 2, 1, 3, 4)  # x = [h, bs, w, bs, 2]
+            x = x.reshape(h * bs0, w * bs1, 2)
 
     elif isinstance(x, np.ndarray):
         if not complex:
-            h, w, bs = x.shape[0], x.shape[1], x.shape[2]
             x = np.transpose(x, [0, 2, 1, 3])
-            x = np.reshape(x, [h * bs, w * bs])
+            x = np.reshape(x, [h * bs0, w * bs1])
         else:
-            h, w, bs = x.shape[0], x.shape[1], x.shape[2]
             x = np.transpose(x, [0, 2, 1, 3, 4])
-            x = np.reshape(x, [h * bs, w * bs, 2])
+            x = np.reshape(x, [h * bs0, w * bs1, 2])
     else:
         raise NotImplementedError
     return x
 
 
-def partition_chunks(x: Tensor, bs: int, complex: bool = False) -> Tensor:
+def partition_chunks(x: Tensor, bs: int | Tuple[int,int], complex: bool = False) -> Tensor:
     """Partition a tensor into square chunks, similar to Rearrange in einops
 
     Args:
         x (Tensor):
-        bs (int): block size
+        bs (int): block size of Tuple of int
         complex (bool, optional): whether x is complex tensor. Defaults to False.
 
     Raises:
@@ -414,26 +411,28 @@ def partition_chunks(x: Tensor, bs: int, complex: bool = False) -> Tensor:
         [Tensor]: [description]
     """
     # x = [H, W] or [H, W, 2]
+    if isinstance(bs, int):
+        bs = (bs, bs)
     if isinstance(x, torch.Tensor):
         h, w = x.size(0), x.size(1)
-        new_h, new_w = h // bs, w // bs
+        new_h, new_w = h // bs[0], w // bs[1]
         if not complex:
-            x = x.view(new_h, bs, new_w, bs)  # x = (h // bs, bs, w // bs, bs)
+            x = x.view(new_h, bs[0], new_w, bs[1])  # x = (h // bs, bs, w // bs, bs)
             # (h // bs, w // bs, bs, bs)
             x = x.permute(0, 2, 1, 3).contiguous()
         else:
             # x = (h // bs, bs, w // bs, bs, 2)
-            x = x.view(new_h, bs, new_w, bs, 2)
+            x = x.view(new_h, bs[0], new_w, bs[1], 2)
             # (h // bs, w // bs, bs, bs, 2)
             x = x.permute(0, 2, 1, 3, 4).contiguous()
     elif isinstance(x, np.ndarray):
         h, w = x.shape[0], x.shape[1]
-        new_h, new_w = h // bs, w // bs
+        new_h, new_w = h // bs[0], w // bs[1]
         if not complex:
-            x = np.reshape(x, [new_h, bs, new_w, bs])
+            x = np.reshape(x, [new_h, bs[0], new_w, bs[1]])
             x = np.transpose(x, [0, 2, 1, 3])
         else:
-            x = np.reshape(x, [new_h, bs, new_w, bs, 2])
+            x = np.reshape(x, [new_h, bs[0], new_w, bs[1], 2])
             x = np.transpose(x, [0, 2, 1, 3, 2])
     else:
         raise NotImplementedError
