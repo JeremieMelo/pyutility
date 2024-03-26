@@ -22,8 +22,8 @@ def dkd_loss(
     logits_teacher_in=None,
     target=None,
     ce_weight: float = 1.0,
-    kl_alpha: float = 1.0,
-    kl_beta: float = 1.0,
+    kd_alpha: float = 1.0,
+    kd_beta: float = 1.0,
     temperature: float = 2.0,
     logit_stand: bool = False,
 ):
@@ -32,7 +32,7 @@ def dkd_loss(
     if ce_weight > 0 and target is not None:
         loss = loss + ce_weight * F.cross_entropy(logits_student_in, target)
 
-    if kl_alpha > 0 and kl_beta > 0 and logits_teacher_in is not None:
+    if kd_alpha > 0 and kd_beta > 0 and logits_teacher_in is not None:
         logits_student = (
             normalize(logits_student_in) if logit_stand else logits_student_in
         )
@@ -63,7 +63,7 @@ def dkd_loss(
             * (temperature**2)
             / target.shape[0]
         )
-        loss = loss + kl_alpha * tckd_loss + kl_beta * nckd_loss
+        loss = loss + kd_alpha * tckd_loss + kd_beta * nckd_loss
     return loss
 
 
