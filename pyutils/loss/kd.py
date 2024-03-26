@@ -1,4 +1,18 @@
 """
+Date: 2024-03-26 13:44:08
+LastEditors: Jiaqi Gu && jiaqigu@asu.edu
+LastEditTime: 2024-03-26 13:45:29
+FilePath: /pyutility/pyutils/loss/kd.py
+"""
+
+"""
+Date: 2024-03-26 13:35:41
+LastEditors: Jiaqi Gu && jiaqigu@asu.edu
+LastEditTime: 2024-03-26 13:35:54
+FilePath: /SparseTeMPO/home/jiaqigu/projects/pyutility/pyutils/loss/kl_mixed.py
+"""
+
+"""
 Date: 2024-03-25 20:12:06
 LastEditors: Jiaqi Gu && jiaqigu@asu.edu
 LastEditTime: 2024-03-25 20:13:39
@@ -14,31 +28,33 @@ import torch.nn.functional as F
 from torch import Tensor
 from .utils import normalize
 
-__all__ = ["kl_mixed_loss", "KLLossMixed"]
+__all__ = ["kd_loss", "KDLoss", "KLLossMixed"]
 
 
-def kl_mixed_loss(y, teacher_scores, labels, T, alpha, logit_stand=False):
-    y = normalize(y) if logit_stand else y
-    teacher_scores = normalize(teacher_scores) if logit_stand else teacher_scores
+def kd_loss(
+    y,
+    teacher_scores=None,
+    labels=None,
+    T: float = 2,
+    ce_weight: float = 0.1,
+    kd_weight: float = 9.0,
+    logit_stand: bool = False,
+):
+    loss = 0
+    if ce_weight > 0 and labels is not None:
+        loss = loss + ce_weight * F.cross_entropy(y, labels)
 
-    alpha = np.clip(alpha, 0, 1)
-    if alpha == 0:
-        l_ce = F.cross_entropy(y, labels)
-        return l_ce
-    elif 0 < alpha < 1:
+    if kd_weight > 0 and teacher_scores is not None:
+        y = normalize(y) if logit_stand else y
+        teacher_scores = normalize(teacher_scores) if logit_stand else teacher_scores
         p = F.log_softmax(y / T, dim=1)
         q = F.softmax(teacher_scores / T, dim=1)
         l_kl = F.kl_div(p, q, reduction="sum") * (T**2) / y.shape[0]
-        l_ce = F.cross_entropy(y, labels)
-        return l_kl * alpha + l_ce * (1.0 - alpha)
-    else:
-        p = F.log_softmax(y / T, dim=1)
-        q = F.softmax(teacher_scores / T, dim=1)
-        l_kl = F.kl_div(p, q, reduction="sum") * (T**2) / y.shape[0]
-        return l_kl
+        loss = loss + kd_weight * l_kl
+    return loss
 
 
-class KLLossMixed(torch.nn.modules.loss._Loss):
+class KDLoss(torch.nn.modules.loss._Loss):
     """
     description: Knowledge distillation loss function combines hard target loss and soft target loss, [https://github.com/szagoruyko/attention-transfer/blob/master/utils.py#L10]
     y {tensor.Tensor} Model output logits from the student model
@@ -49,7 +65,13 @@ class KLLossMixed(torch.nn.modules.loss._Loss):
     return loss {tensor.Tensor} loss function
     """
 
-    def __init__(self, T: float = 6.0, alpha: float = 0.9, logit_stand=False) -> None:
+    def __init__(
+        self,
+        T: float = 2.0,
+        ce_weight: float = 0.1,
+        kd_weight: float = 9,
+        logit_stand=False,
+    ) -> None:
         """
         Args:
             T (float, optional): Temperature for softmax. Defaults to 6.0.
@@ -57,7 +79,8 @@ class KLLossMixed(torch.nn.modules.loss._Loss):
         """
         super().__init__()
         self.T = T
-        self.alpha = alpha
+        self.ce_weight = ce_weight
+        self.kd_weight = kd_weight
         self.logit_stand = logit_stand
 
     def forward(
@@ -67,4 +90,16 @@ class KLLossMixed(torch.nn.modules.loss._Loss):
         labels: Tensor,
     ) -> Tensor:
 
-        return kl_mixed_loss(y, teacher_scores, labels, self.T, self.alpha, self.logit_stand)
+        return kd_loss(
+            y,
+            teacher_scores,
+            labels,
+            self.T,
+            self.ce_weight,
+            self.kd_weight,
+            self.logit_stand,
+        )
+
+
+## deprecated
+KLLossMixed = KDLoss

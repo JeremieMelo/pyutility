@@ -18,35 +18,53 @@ __all__ = ["dkd_loss", "DKDLoss"]
 
 
 def dkd_loss(
-    logits_student_in, logits_teacher_in, target, alpha, beta, temperature, logit_stand
+    logits_student_in,
+    logits_teacher_in=None,
+    target=None,
+    ce_weight: float = 1.0,
+    kl_alpha: float = 1.0,
+    kl_beta: float = 1.0,
+    temperature: float = 2.0,
+    logit_stand: bool = False,
 ):
-    logits_student = normalize(logits_student_in) if logit_stand else logits_student_in
-    logits_teacher = normalize(logits_teacher_in) if logit_stand else logits_teacher_in
+    loss = 0
 
-    gt_mask = _get_gt_mask(logits_student, target)
-    other_mask = _get_other_mask(logits_student, target)
-    pred_student = F.softmax(logits_student / temperature, dim=1)
-    pred_teacher = F.softmax(logits_teacher / temperature, dim=1)
-    pred_student = cat_mask(pred_student, gt_mask, other_mask)
-    pred_teacher = cat_mask(pred_teacher, gt_mask, other_mask)
-    log_pred_student = torch.log(pred_student)
-    tckd_loss = (
-        F.kl_div(log_pred_student, pred_teacher, reduction='sum')
-        * (temperature**2)
-        / target.shape[0]
-    )
-    pred_teacher_part2 = F.softmax(
-        logits_teacher / temperature - 1000.0 * gt_mask, dim=1
-    )
-    log_pred_student_part2 = F.log_softmax(
-        logits_student / temperature - 1000.0 * gt_mask, dim=1
-    )
-    nckd_loss = (
-        F.kl_div(log_pred_student_part2, pred_teacher_part2, reduction='sum')
-        * (temperature**2)
-        / target.shape[0]
-    )
-    return alpha * tckd_loss + beta * nckd_loss
+    if ce_weight > 0 and target is not None:
+        loss = loss + ce_weight * F.cross_entropy(logits_student_in, target)
+
+    if kl_alpha > 0 and kl_beta > 0 and logits_teacher_in is not None:
+        logits_student = (
+            normalize(logits_student_in) if logit_stand else logits_student_in
+        )
+        logits_teacher = (
+            normalize(logits_teacher_in) if logit_stand else logits_teacher_in
+        )
+
+        gt_mask = _get_gt_mask(logits_student, target)
+        other_mask = _get_other_mask(logits_student, target)
+        pred_student = F.softmax(logits_student / temperature, dim=1)
+        pred_teacher = F.softmax(logits_teacher / temperature, dim=1)
+        pred_student = cat_mask(pred_student, gt_mask, other_mask)
+        pred_teacher = cat_mask(pred_teacher, gt_mask, other_mask)
+        log_pred_student = torch.log(pred_student)
+        tckd_loss = (
+            F.kl_div(log_pred_student, pred_teacher, reduction="sum")
+            * (temperature**2)
+            / target.shape[0]
+        )
+        pred_teacher_part2 = F.softmax(
+            logits_teacher / temperature - 1000.0 * gt_mask, dim=1
+        )
+        log_pred_student_part2 = F.log_softmax(
+            logits_student / temperature - 1000.0 * gt_mask, dim=1
+        )
+        nckd_loss = (
+            F.kl_div(log_pred_student_part2, pred_teacher_part2, reduction="sum")
+            * (temperature**2)
+            / target.shape[0]
+        )
+        loss = loss + kl_alpha * tckd_loss + kl_beta * nckd_loss
+    return loss
 
 
 def _get_gt_mask(logits, target):
@@ -79,7 +97,11 @@ class DKDLoss(torch.nn.modules.loss._Loss):
     """
 
     def __init__(
-        self, T: float = 2.0, alpha: float = 1, beta: float = 1, logit_stand: bool = True
+        self,
+        T: float = 2.0,
+        alpha: float = 1,
+        beta: float = 1,
+        logit_stand: bool = True,
     ) -> None:
         """
         Args:
