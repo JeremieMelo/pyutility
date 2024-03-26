@@ -79,12 +79,14 @@ class DKDLoss(torch.nn.modules.loss._Loss):
     """
 
     def __init__(
-        self, T: float = 6.0, alpha: float = 1, beta: float = 1, logit_stand: bool = True
+        self, T: float = 2.0, alpha: float = 1, beta: float = 1, logit_stand: bool = True
     ) -> None:
         """
         Args:
-            T (float, optional): Temperature for softmax. Defaults to 6.0.
-            alpha (float, optional): weighting factor for soft loss from teacher. Defaults to 0.9.
+            T (float, optional): Temperature for softmax. Defaults to 2.0.
+            alpha (float, optional): weighting factor for soft loss from teacher. Defaults to 1.
+            beta (float, optional): weighting factor for hard loss. Defaults to 1.
+            typically the weights for this DKD loss is set to 9, while CE loss weight is set to 1.
         """
         super().__init__()
         self.T = T
