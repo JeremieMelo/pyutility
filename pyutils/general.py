@@ -78,15 +78,18 @@ def profile(func=None, timer=True):
     return wrapper
 
 
-def print_stat(x):
-    if isinstance(x, torch.Tensor):
-        print(
-            f"min = {x.min().data.item():-15f} max = {x.max().data.item():-15f} mean = {x.mean().data.item():-15f} std = {x.std().data.item():-15f}"
-        )
-    elif isinstance(x, np.ndarray):
-        print(
-            f"min = {np.min(x):-15f} max = {np.max(x):-15f} mean = {np.mean(x):-15f} std = {np.std(x):-15f}"
-        )
+def print_stat(x, message="", verbose=True):
+    if verbose:
+        if isinstance(x, torch.Tensor):
+            if torch.is_complex(x):
+                x = torch.view_as_real(x)
+            print(
+                message + f"min = {x.data.min().item():-15f} max = {x.data.max().item():-15f} mean = {x.data.mean().item():-15f} std = {x.data.std().item():-15f}"
+            )
+        elif isinstance(x, np.ndarray):
+            print(
+                message + f"min = {np.min(x):-15f} max = {np.max(x):-15f} mean = {np.mean(x):-15f} std = {np.std(x):-15f}"
+            )
 
 
 class Timer(object):
