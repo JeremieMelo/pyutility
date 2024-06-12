@@ -374,68 +374,85 @@ def batch_eye(
 
 
 def merge_chunks(x: Tensor, complex: bool = False) -> Tensor:
-    # x = [H, W, B, B] or [H, W, B, B, 2]
-    h, w, bs0, bs1 = x.shape[0], x.shape[1], x.shape[2], x.shape[3]
-    if isinstance(x, torch.Tensor):
-        if not complex:
-            x = x.permute(0, 2, 1, 3)  # x = [h, bs, w, bs]
-            x = x.reshape(h * bs0, w * bs1)
-        else:
-            x = x.permute(0, 2, 1, 3, 4)  # x = [h, bs, w, bs, 2]
-            x = x.reshape(h * bs0, w * bs1, 2)
+    """Merge a chunked/blocked tensors into a 2D matrix
 
+    Args:
+        x (Tensor): Tensor of shape [h1, w1, h2, w2, ...., hk, wk] if complex=False; [h1, w1, h2, w2, ...., hk, wk, 2] if complex=True
+        complex (bool, optional): True if the tensor x has a last dimension with size 2 for real/imag representation. Defaults to False.
+
+    Returns:
+        Tensor: [h1*h2*...*hk, w1*w2*...*wk] or [h1*h2*...*hk, w1*w2*...*wk, 2]
+    """
+    if isinstance(x, torch.Tensor):
+        permute = torch.permute
     elif isinstance(x, np.ndarray):
-        if not complex:
-            x = np.transpose(x, [0, 2, 1, 3])
-            x = np.reshape(x, [h * bs0, w * bs1])
-        else:
-            x = np.transpose(x, [0, 2, 1, 3, 4])
-            x = np.reshape(x, [h * bs0, w * bs1, 2])
+        permute = np.transpose
     else:
         raise NotImplementedError
+
+    if not complex:
+        dim = len(x.shape)
+        x = permute(x, list(range(0, dim, 2)) + list(range(1, dim + 1, 2)))
+        x = x.reshape(np.prod([x.shape[i] for i in range(dim // 2)]), -1)
+    else:
+        dim = len(x.shape) - 1
+        x = permute(x, list(range(0, dim, 2)) + list(range(1, dim + 1, 2) + [dim]))
+        x = x.reshape(np.prod([x.shape[i] for i in range(dim // 2)]), -1, 2)
+
     return x
 
 
-def partition_chunks(x: Tensor, bs: int | Tuple[int,int], complex: bool = False) -> Tensor:
+def partition_chunks(
+    x: Tensor, out_shape: int | Tuple[int, ...], complex: bool = False
+) -> Tensor:
     """Partition a tensor into square chunks, similar to Rearrange in einops
 
     Args:
-        x (Tensor):
-        bs (int): block size of Tuple of int
+        x (Tensor): 2D tensor of shape [h1*h2*...*hk, w1*w2*...*wk] or 3D tensor of shape [h1*h2*...*hk, w1*w2*...*wk, 2] if complex=True
+        out_shape (Tuple[int]): output blocked shape (h1, w1, h2, w2, ...); Do not include the last dimension even if complex=True
         complex (bool, optional): whether x is complex tensor. Defaults to False.
 
-    Raises:
-        NotImplementedError: [description]
-
     Returns:
-        [Tensor]: [description]
+        [Tensor]: Tensor of shape [h1, w1, h2, w2, ...., hk, wk] or [h1, w1, h2, w2, ...., hk, wk, 2] if complex=True
     """
-    # x = [H, W] or [H, W, 2]
-    if isinstance(bs, int):
-        bs = (bs, bs)
+    assert complex == True and len(x.shape) == 3
+    x_shape = (np.prod(out_shape[::2]), np.prod(out_shape[1::2]))
     if isinstance(x, torch.Tensor):
-        h, w = x.size(0), x.size(1)
-        new_h, new_w = h // bs[0], w // bs[1]
-        if not complex:
-            x = x.view(new_h, bs[0], new_w, bs[1])  # x = (h // bs, bs, w // bs, bs)
-            # (h // bs, w // bs, bs, bs)
-            x = x.permute(0, 2, 1, 3).contiguous()
-        else:
-            # x = (h // bs, bs, w // bs, bs, 2)
-            x = x.view(new_h, bs[0], new_w, bs[1], 2)
-            # (h // bs, w // bs, bs, bs, 2)
-            x = x.permute(0, 2, 1, 3, 4).contiguous()
+        permute = torch.permute
+        pad_fn = lambda x, padding: torch.nn.functional.pad(x[None, None], padding)[
+            0, 0
+        ]
+        is_tensor = True
     elif isinstance(x, np.ndarray):
-        h, w = x.shape[0], x.shape[1]
-        new_h, new_w = h // bs[0], w // bs[1]
-        if not complex:
-            x = np.reshape(x, [new_h, bs[0], new_w, bs[1]])
-            x = np.transpose(x, [0, 2, 1, 3])
-        else:
-            x = np.reshape(x, [new_h, bs[0], new_w, bs[1], 2])
-            x = np.transpose(x, [0, 2, 1, 3, 2])
+        permute = np.transpose
+        pad_fn = np.pad
+        is_tensor = False
     else:
         raise NotImplementedError
+
+    if x_shape != x.shape[:2]:
+        ## if x cannot be partitioned into out_shape, we need to pad it
+        if is_tensor:
+            ## torch from the last dim
+            padding = (0, x_shape[1] - x.shape[1], 0, x_shape[0] - x.shape[0])
+            if complex:
+                padding = (0, 0) + padding
+        else:
+            ## np from the first dim
+            padding = ((0, x_shape[0] - x.shape[0]), (0, x_shape[1] - x.shape[1]))
+            if complex:
+                padding = padding + (0, 0)
+
+        x = pad_fn(x, padding)
+
+    in_shape = list(out_shape[::2]) + list(out_shape[1::2])
+    permute_shape = np.arange(len(out_shape)).reshape(2, -1).T.reshape(-1).tolist()
+    if complex:
+        in_shape.append(2)
+        permute_shape.append(len(permute_shape))
+    x = x.reshape(in_shape)  # [h1, h2, ..., hk, w1, w2, ..., wk]
+
+    x = permute(x, permute_shape)  # [h1, w1, h2, w2, ...., hk, wk]
 
     return x
 
@@ -481,7 +498,7 @@ def percentile(t: Tensor, q: float) -> Tensor:
 
 
 def gen_boolean_mask_cpu(size: _size, true_prob: float) -> np.ndarray:
-    assert 0 <= true_prob <= 1, f"[E] Wrong probability for True"
+    assert 0 <= true_prob <= 1, "[E] Wrong probability for True"
     return np.random.choice(a=[False, True], size=size, p=[1 - true_prob, true_prob])
 
 
@@ -491,7 +508,7 @@ def gen_boolean_mask(
     random_state: Optional[int] = None,
     device: Device = torch.device("cuda"),
 ) -> Tensor:
-    assert 0 <= true_prob <= 1, f"[E] Wrong probability for True"
+    assert 0 <= true_prob <= 1, "[E] Wrong probability for True"
     if true_prob > 1 - 1e-9:
         return torch.ones(size, device=device, dtype=torch.bool)
     elif true_prob < 1e-9:
@@ -732,15 +749,44 @@ def calc_jacobian(
     return jacobian_dict
 
 
-def polynomial(x: Tensor, coeff: Tensor) -> Tensor:
+@lru_cache(maxsize=4)
+def _polynomial_order_base(order: int, device: Device) -> Tensor:
+    return torch.arange(order - 1, -1, -1, device=device)
+
+
+def polynomial(x: Tensor | np.ndarray, coeff: Tensor | np.ndarray) -> Tensor:
+    """calculate polynomial function of x given coefficient coeff
+
+    Args:
+        x (Tensor): input tensor
+        coeff (Tensor): Tensor of shape [n], where n is the degree of polynomial. Orders: [n, n-1, ..., 2, 1, constant]
+
+    Returns:
+        Tensor: output tensor coeff[0]*x^n + coeff[1]*x^{n-1} + ... + coeff[n-1]*x + coeff[n]
+    """
     # xs = [x]
     # for i in range(2, coeff.size(0)):
     #     xs.append(xs[-1]*x)
     # xs.reverse()
     # x = torch.stack(xs, dim=-1)
-    x = torch.stack([x**i for i in range(coeff.size(0) - 1, 0, -1)], dim=-1)
-    out = (x * coeff[:-1]).sum(dim=-1) + coeff[-1].data.item()
-    return out
+
+    # Deprecated implementation
+    # x = torch.stack([x**i for i in range(coeff.size(0) - 1, 0, -1)], dim=-1)
+    # out = (x * coeff[:-1]).sum(dim=-1) + coeff[-1].data.item()
+    # return out
+
+    ### x^n, x^{n-1}, ..., x^2, x, 1
+    order = coeff.shape[0]  # n+1
+    if isinstance(x, Tensor):
+        ## torch from highest order to constant
+        x = x[..., None].expand([-1] * x.dim() + [order])
+        order_base = _polynomial_order_base(order, x.device)
+        return x.pow(order_base).matmul(coeff)
+    elif isinstance(x, np.ndarray):
+        ## numpy polyval from constant to higher order
+        return np.polynomial.polynomial.polyval(x, coeff[::-1])
+    else:
+        raise NotImplementedError
 
 
 def gaussian(x: Tensor, coeff: Tensor) -> Tensor:
@@ -971,13 +1017,14 @@ class Interp1d(torch.autograd.Function):
             # now build the linear interpolation
             ynew = sel("y") + sel("slopes") * (v["xnew"] - sel("x"))
 
-            mask = (v["xnew"] > v["x"][:, -1:]) | (v["xnew"] < v["x"][:, :1]) # exceed left/right border
+            mask = (v["xnew"] > v["x"][:, -1:]) | (
+                v["xnew"] < v["x"][:, :1]
+            )  # exceed left/right border
             ynew = ynew.masked_fill(mask, 0)
 
             if reshaped_xnew:
                 ynew = ynew.view(original_xnew_shape)
 
-            
         ctx.save_for_backward(ynew, *saved_inputs)
         return ynew
 
@@ -999,6 +1046,7 @@ class Interp1d(torch.autograd.Function):
                 result[index] = gradients[pos]
                 pos += 1
         return (*result,)
+
 
 def interp1d(x: Tensor, y: Tensor, xnew: Tensor, out: Tensor | None = None) -> Tensor:
     """numpy.interp for pytorch. Only 1D
