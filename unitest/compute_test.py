@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from pyutils.compute import interp1d
+from pyutils.compute import interp1d, polynomial
 from pyutils.general import TimerCtx
 import numpy as np
 
@@ -47,6 +47,20 @@ def test_interp1d():
     # assert np.allclose(y_numpy, yq_gpu.cpu().numpy())
     print(np.sum(np.abs(y_numpy - yq_gpu.cpu().numpy())) / np.sum(np.abs(y_numpy)))
 
+def test_polynomial():
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    x = torch.randn(100, 100, device=device)
+    coeffs = torch.randn(6, device=device)
+    y = polynomial(x, coeffs)
+    for i in range(100):
+        y = polynomial(x, coeffs)
+    torch.cuda.synchronize()
+    with TimerCtx() as t:
+        for i in range(100):
+            y = polynomial(x, coeffs)
+        torch.cuda.synchronize()
+    print(t.interval / 100)
 
 if __name__ == "__main__":
-    test_interp1d()
+    # test_interp1d()
+    test_polynomial()
