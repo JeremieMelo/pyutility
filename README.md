@@ -9,9 +9,18 @@ A python/pytorch utility library
 
 ## Installation
 ```bash
+pip install torchonn-pyutils
+```
+or install from cloned codes from github if you would like to modify the code
+```bash
 git clone https://github.com/JeremieMelo/pyutility.git
 cd pyutility
 pip3 install --editable .
+```
+
+## Usage
+```bash
+import pyutils
 ```
 
 ## Features
@@ -32,7 +41,10 @@ pip3 install --editable .
 | File      | Description |
 | ----------- | ----------- |
 | datasets/ | Defines different datasets and builder |
+| loss/ | Defines different loss functions/criterions |
 | optimizer/ | Defines different optimizers |
+| lr_scheduler/ | Defines different learning rate schedulers |
+| quant/ | Defines different weight/activation quantizers |
 | activation.py      | Activation functions |
 | compute.py   | functions related to computing |
 | config.py   | Hierarchical yaml configuration file parser |

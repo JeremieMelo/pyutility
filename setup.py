@@ -2,12 +2,12 @@
 Description:
 Author: Jiaqi Gu (jqgu@utexas.edu)
 Date: 2021-11-29 04:15:29
-LastEditors: Jiaqi Gu (jqgu@utexas.edu)
-LastEditTime: 2023-04-03 20:08:33
+LastEditors: Jiaqi Gu && jiaqigu@asu.edu
+LastEditTime: 2024-04-11 18:14:24
 '''
 
 from setuptools import setup, find_packages
-from pyutils import __version__
+from pyutils.version import __version__
 
 setup(
     name="pyutils",

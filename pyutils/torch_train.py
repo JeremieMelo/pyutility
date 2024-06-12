@@ -17,8 +17,10 @@ import numpy as np
 import torch
 from scipy import interpolate
 from torch.nn.modules.batchnorm import _BatchNorm
-from torchsummary import summary
-
+try:
+    from torchsummary import summary
+except:
+    print("[W] Cannot import torchsummary")
 from .general import ensure_dir
 
 __all__ = [
