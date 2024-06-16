@@ -1,6 +1,6 @@
 [project]
 name = "torchonn-pyutils"
-version = "0.0.2"
+version = "0.0.3"
 description = "A set of python modules for machine learning and data mining"
 readme = "README.md"
 maintainers = [
@@ -11,7 +11,7 @@ dependencies = [
   "torchvision>=0.9.0.dev20210130",
   "tqdm>=4.56.0",
   "setuptools>=52.0.0",
-  "torch>=1.8.0",
+  "torch>=2.0.0",
   "matplotlib>=3.3.4",
   "svglib>=1.1.0",
   "scipy>=1.5.4",
@@ -43,6 +43,6 @@ classifiers=[
 source = "https://github.com/JeremieMelo/pyutility"
 
 [build-system]
-requires = ["setuptools >= 52.0.0"]
-build-backend = ["setuptools.build"]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
 
