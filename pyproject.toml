@@ -1,6 +1,6 @@
 [project]
 name = "torchonn-pyutils"
-version = "0.0.3"
+version = "0.0.3.1"
 description = "A set of python modules for machine learning and data mining"
 readme = "README.md"
 maintainers = [

@@ -1,3 +1,9 @@
+<!--
+ * @Date: 2024-06-16 13:06:59
+ * @LastEditors: Jiaqi Gu && jiaqigu@asu.edu
+ * @LastEditTime: 2024-06-16 13:07:00
+ * @FilePath: /pyutility/README.md
+-->
 # pyutils
 A python/pytorch utility library
 
@@ -9,7 +15,7 @@ A python/pytorch utility library
 
 ## Installation
 ```bash
-pip install torchonn-pyutils
+pip install torchonn-pyutils --no-build-isolation
 ```
 or install from cloned codes from github if you would like to modify the code
 ```bash
