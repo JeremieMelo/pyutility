@@ -415,7 +415,8 @@ def partition_chunks(
     Returns:
         [Tensor]: Tensor of shape [h1, w1, h2, w2, ...., hk, wk] or [h1, w1, h2, w2, ...., hk, wk, 2] if complex=True
     """
-    assert complex == True and len(x.shape) == 3
+    if complex:
+        assert len(x.shape) == 3
     x_shape = (np.prod(out_shape[::2]), np.prod(out_shape[1::2]))
     if isinstance(x, torch.Tensor):
         permute = torch.permute
