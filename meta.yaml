@@ -1,14 +1,19 @@
-{% set version = "0.0.2" %}
+{% set version = "0.0.3" %}
+{% set build = 0 %}
 
 package:
-  name: pyutils
+  name: torchonn-pyutils
   version: {{ version }}
 
 source:
   path: .
+  git_rev: master
+  git_url: https://github.com/JeremieMelo/pyutility.git
 
 build:
-  number: 0
+  number: {{ build }}
+  noarch: python
+  script: ./setup.sh
   # skip: True  # [win]
   # noarch: python
   # script_env:
@@ -24,7 +29,7 @@ requirements:
   build:
     - python=3.10
     - pip >=21.0.1
-    - setuptools >=52.0.0
+    - setuptools >=61.0.0
     # - numpy >=1.19.2
     - torchvision
     - tqdm

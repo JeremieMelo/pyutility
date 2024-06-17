@@ -1,10 +1,10 @@
 [project]
 name = "torchonn-pyutils"
 version = "0.0.3.1"
-description = "A set of python modules for machine learning and data mining"
+description = "Python utility package for deep learning and optical computing"
 readme = "README.md"
 maintainers = [
-    {name = "scikit-learn developers", email="scikit-learn@python.org"},
+    {name = "Jiaqi Gu", email="jiaqigu@asu.edu"},
 ]
 dependencies = [
   "numpy>=1.19.2",
@@ -16,7 +16,6 @@ dependencies = [
   "svglib>=1.1.0",
   "scipy>=1.5.4",
   "scikit-learn>=0.24.1",
-  "torchsummary>=1.5.1",
   "pyyaml>=5.1.1",
   "tensorflow>=2.5.0",
 ]

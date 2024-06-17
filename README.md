@@ -1,7 +1,7 @@
 <!--
  * @Date: 2024-06-16 13:06:59
  * @LastEditors: Jiaqi Gu && jiaqigu@asu.edu
- * @LastEditTime: 2024-06-16 13:07:00
+ * @LastEditTime: 2024-06-17 02:43:28
  * @FilePath: /pyutility/README.md
 -->
 # pyutils
@@ -14,6 +14,9 @@ A python/pytorch utility library
 - v0.0.1 available. Feedbacks are highly welcomed!
 
 ## Installation
+```bash
+conda install scopex/label/ScopeX::torchonn-pyutils
+```
 ```bash
 pip install torchonn-pyutils --no-build-isolation
 ```
