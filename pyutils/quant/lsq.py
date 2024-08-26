@@ -1,16 +1,12 @@
 """
-Description: 
+Description:
 Author: Jiaqi Gu (jiaqigu@asu.edu)
 Date: 2023-12-14 22:43:29
 LastEditors: ScopeX-ASU jiaqigu@asu.edu
 LastEditTime: 2023-12-14 23:29:16
 """
 
-import math
-
-import numpy as np
 import torch
-import torch.nn.functional as F
 from torch import nn
 from torch.nn.parameter import Parameter
 
@@ -99,7 +95,7 @@ class ActQuantizer_LSQ(nn.Module):
         self.kwargs_q[param_k] = param_v
 
     def set_bit(self, nbits):
-        self.kwargs_q["nbits"] = nbits
+        self.kwargs_q["nbits"] = self.nbits = nbits
         self._compute_quant_range()
 
     def _compute_quant_range(self):
@@ -204,7 +200,7 @@ class WeightQuantizer_LSQ(nn.Module):
         self.kwargs_q[param_k] = param_v
 
     def set_bit(self, nbits):
-        self.kwargs_q["nbits"] = nbits
+        self.kwargs_q["nbits"] = self.nbits = nbits
         self._compute_quant_range()
 
     def _compute_quant_range(self):
@@ -251,12 +247,13 @@ class WeightQuantizer_LSQ(nn.Module):
 
         alpha = grad_scale(self.alpha, g)  # scale alpha's gradient by g
 
-        if len(x.shape) == 2:  # linear layer
-            alpha = alpha[..., None]
-        elif len(x.shape) == 4:  # conv layer
-            alpha = alpha[..., None, None, None]
-        else:
-            raise NotImplementedError
+        # if len(x.shape) == 2:  # linear layer
+        #     alpha = alpha[..., None]
+        # elif len(x.shape) == 4:  # conv layer
+        #     alpha = alpha[..., None, None, None]
+        # else:
+        #     raise NotImplementedError
+        alpha = alpha.view(alpha.shape + (1,) * (len(x.shape) - len(alpha.shape)))
 
         if self.offset:
             zero_point = round_pass(self.zero_point)
