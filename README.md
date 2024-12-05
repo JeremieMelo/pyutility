@@ -43,8 +43,8 @@ import pyutils
 - [ ] Support trainer
 
 ## Dependencies
-- Python >= 3.6
-- PyTorch >= 1.8.0
+- Python >= 3.10
+- PyTorch >= 2.0
 - Tensorflow >= 2.5.0
 - Others are listed in requirements.txt
 
