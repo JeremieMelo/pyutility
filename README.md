@@ -24,7 +24,9 @@ or install from cloned codes from github if you would like to modify the code
 ```bash
 git clone https://github.com/JeremieMelo/pyutility.git
 cd pyutility
-pip3 install --editable .
+python3 setup.py install
+or
+python3 setup.py develop --no-deps
 ```
 
 ## Usage
