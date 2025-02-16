@@ -10,6 +10,7 @@ A python/pytorch utility library
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## News
+- v0.0.3.2 available.
 - v0.0.2 available. Added new datasets and quantization!
 - v0.0.1 available. Feedbacks are highly welcomed!
 
@@ -42,8 +43,8 @@ import pyutils
 - [ ] Support trainer
 
 ## Dependencies
-- Python >= 3.6
-- PyTorch >= 1.8.0
+- Python >= 3.10
+- PyTorch >= 2.0
 - Tensorflow >= 2.5.0
 - Others are listed in requirements.txt
 
