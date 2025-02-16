@@ -1,16 +1,22 @@
+"""
+Date: 2023-09-19 14:49:58
+LastEditors: Jiaqi Gu && jiaqigu@asu.edu
+LastEditTime: 2025-01-09 17:40:14
+FilePath: /pyutility/setup.py
+"""
 '''
 Description:
 Author: Jiaqi Gu (jqgu@utexas.edu)
 Date: 2021-11-29 04:15:29
 LastEditors: Jiaqi Gu && jiaqigu@asu.edu
-LastEditTime: 2024-06-17 02:48:39
+LastEditTime: 2024-12-04 21:31:14
 '''
 
 from setuptools import setup, find_packages
 from pyutils.version import __version__
 
 setup(
-    name="pyutils",
+    name="torchonn-pyutils",
     version=__version__,
     description="Python/Pytorch Utility",
     url="https://github.com/JeremieMelo/pyutility",
@@ -29,6 +35,7 @@ setup(
         "scikit-learn>=0.24.1",
         # "torchsummary>=1.5.1",
         "pyyaml>=5.1.1",
+        "ryaml>=0.4.0",
         "tensorflow>=2.5.0",
     ],
     python_requires=">=3",
