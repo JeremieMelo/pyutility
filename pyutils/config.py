@@ -2,12 +2,12 @@
 Description: Modified based on torchpack 0.3.0
 Author: Jiaqi Gu (jqgu@utexas.edu)
 Date: 2021-06-06 01:46:57
-LastEditors: Jiaqi Gu (jqgu@utexas.edu)
-LastEditTime: 2021-06-06 01:46:57
+LastEditors: Jiaqi Gu && jiaqigu@asu.edu
+LastEditTime: 2025-01-09 17:53:29
 """
 import hashlib
 import json
-import yaml
+import ryaml
 import os
 from ast import literal_eval
 from typing import Any, Dict, List, Tuple, Union
@@ -53,7 +53,7 @@ class Config(dict):
         for fpath in reversed(fpaths):
             if os.path.exists(fpath):
                 with open(fpath, "r") as f:
-                    cfg_dict = yaml.safe_load(f)
+                    cfg_dict = ryaml.load(f)
                 self.update(cfg_dict)
 
     def reload(self, fpath: str, *, recursive: bool = False) -> None:
@@ -68,6 +68,10 @@ class Config(dict):
                     self[key] = Config()
                 self[key].update(value)
             else:
+                try:
+                    value = literal_eval(value)
+                except:
+                    pass
                 self[key] = value
 
     @multimethod
@@ -121,7 +125,7 @@ class Config(dict):
 
     def dump_to_yml(self, path: str) -> None:
         with open(path, "w") as f:
-            yaml.safe_dump(self.dict(), f)
+            ryaml.dump(self.dict(), f)
 
     def __str__(self) -> str:
         texts = []
