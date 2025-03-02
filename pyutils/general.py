@@ -3,7 +3,7 @@ Description:
 Author: Jiaqi Gu (jqgu@utexas.edu)
 Date: 2021-06-06 01:55:29
 LastEditors: Jiaqi Gu && jiaqigu@asu.edu
-LastEditTime: 2025-03-02 02:03:10
+LastEditTime: 2025-03-02 02:25:12
 """
 
 import argparse
@@ -110,8 +110,8 @@ class Timer(object):
         self.cache = datetime.now()
 
 
-class TimerCtx:
-    def __enter__(
+class TimerCtx(object):
+    def __init__(
         self,
         enable: bool = True,
         desc: str = "",
@@ -119,8 +119,6 @@ class TimerCtx:
         n_avg: int = 1,
         logger=None,
     ):
-        if enable:
-            self.start = time.time()
         self.enable = enable
         self.desc = desc
         self.interval = 0
@@ -128,6 +126,14 @@ class TimerCtx:
         self.n_avg = n_avg
         self.verbose = verbose
         self.logger = logger
+        super().__init__()
+
+    def __enter__(
+        self,
+    ):
+        if self.enable:
+            self.start = time.time()
+
         return self
 
     def __exit__(self, *args):
