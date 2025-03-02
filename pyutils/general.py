@@ -3,7 +3,7 @@ Description:
 Author: Jiaqi Gu (jqgu@utexas.edu)
 Date: 2021-06-06 01:55:29
 LastEditors: Jiaqi Gu && jiaqigu@asu.edu
-LastEditTime: 2025-03-02 01:54:52
+LastEditTime: 2025-03-02 01:57:35
 """
 
 import argparse
@@ -131,7 +131,7 @@ class TimerCtx:
             self.avg_interval = self.interval / self.n_avg
             if self.verbose:
                 print(
-                    f"[Timer] {self.desc} ({self.interval} s, {self.avg_interval} s/iter)"
+                    f"[Timer] {self.desc} ({self.interval:.6f} s, {self.avg_interval:.6f} s/iter)"
                 )
 
 
