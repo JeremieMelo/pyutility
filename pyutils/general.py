@@ -2,15 +2,15 @@
 Description:
 Author: Jiaqi Gu (jqgu@utexas.edu)
 Date: 2021-06-06 01:55:29
-LastEditors: Jiaqi Gu (jqgu@utexas.edu)
-LastEditTime: 2021-06-06 01:55:30
+LastEditors: Jiaqi Gu && jiaqigu@asu.edu
+LastEditTime: 2025-03-02 01:54:52
 """
 
-import os
 import argparse
 import json
 import logging
 import logging.handlers
+import os
 import time
 from collections import OrderedDict
 from datetime import datetime
@@ -19,7 +19,6 @@ from typing import Optional
 
 import numpy as np
 import torch
-
 
 __all__ = [
     "ensure_dir",
@@ -58,8 +57,8 @@ def write_json(content, fname):
 
 
 def profile(func=None, timer=True):
-    from functools import wraps, partial
     import time
+    from functools import partial, wraps
 
     if func == None:
         return partial(profile, timer=timer)
@@ -70,7 +69,10 @@ def profile(func=None, timer=True):
             local_time = time.time()
             res = func(*args, **kw)
             end_time = time.time()
-            print("[I] <%s> runtime: %.3f ms" % (func.__name__, (end_time - local_time) * 1000))
+            print(
+                "[I] <%s> runtime: %.3f ms"
+                % (func.__name__, (end_time - local_time) * 1000)
+            )
         else:
             res = func(*args, **kw)
         return res
@@ -84,11 +86,13 @@ def print_stat(x, message="", verbose=True):
             if torch.is_complex(x):
                 x = torch.view_as_real(x)
             print(
-                message + f"min = {x.data.min().item():-15f} max = {x.data.max().item():-15f} mean = {x.data.mean().item():-15f} std = {x.data.std().item():-15f}"
+                message
+                + f"min = {x.data.min().item():-15f} max = {x.data.max().item():-15f} mean = {x.data.mean().item():-15f} std = {x.data.std().item():-15f}"
             )
         elif isinstance(x, np.ndarray):
             print(
-                message + f"min = {np.min(x):-15f} max = {np.max(x):-15f} mean = {np.mean(x):-15f} std = {np.std(x):-15f}"
+                message
+                + f"min = {np.min(x):-15f} max = {np.max(x):-15f} mean = {np.mean(x):-15f} std = {np.std(x):-15f}"
             )
 
 
@@ -107,13 +111,28 @@ class Timer(object):
 
 
 class TimerCtx:
-    def __enter__(self):
-        self.start = time.time()
+    def __enter__(
+        self, enable: bool = True, desc: str = "", verbose: bool = True, n_avg: int = 1
+    ):
+        if enable:
+            self.start = time.time()
+        self.enable = enable
+        self.desc = desc
+        self.interval = 0
+        self.avg_interval = 0
+        self.n_avg = n_avg
+        self.verbose = verbose
         return self
 
     def __exit__(self, *args):
-        self.end = time.time()
-        self.interval = self.end - self.start
+        if self.enable:
+            self.end = time.time()
+            self.interval = self.end - self.start
+            self.avg_interval = self.interval / self.n_avg
+            if self.verbose:
+                print(
+                    f"[Timer] {self.desc} ({self.interval} s, {self.avg_interval} s/iter)"
+                )
 
 
 class TorchTracemalloc(object):
@@ -127,7 +146,7 @@ class TorchTracemalloc(object):
         return self
 
     def _b2mb(self, x):
-        return x / 2 ** 20
+        return x / 2**20
 
     def __exit__(self, *exc):
         self.end = self._b2mb(torch.cuda.memory_allocated())
@@ -181,13 +200,17 @@ class CustomFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-def setup_default_logging(default_level=logging.INFO, default_file_level=logging.INFO, log_path=""):
+def setup_default_logging(
+    default_level=logging.INFO, default_file_level=logging.INFO, log_path=""
+):
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(CustomFormatter())
     logging.root.addHandler(console_handler)
     logging.root.setLevel(default_level)
     if log_path:
-        file_handler = logging.handlers.RotatingFileHandler(log_path, maxBytes=(1024 ** 2 * 2), backupCount=3)
+        file_handler = logging.handlers.RotatingFileHandler(
+            log_path, maxBytes=(1024**2 * 2), backupCount=3
+        )
         file_formatter = logging.Formatter(
             "%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s"
         )
@@ -197,14 +220,20 @@ def setup_default_logging(default_level=logging.INFO, default_file_level=logging
 
 
 class Logger(object):
-    def __init__(self, console=True, logfile=None, console_level=logging.INFO, logfile_level=logging.INFO):
+    def __init__(
+        self,
+        console=True,
+        logfile=None,
+        console_level=logging.INFO,
+        logfile_level=logging.INFO,
+    ):
         super().__init__()
         self.logfile = logfile
         self.console_level = console_level
         self.logifle_level = logfile_level
-        assert (
-            console == True or logfile is not None
-        ), "At least enable one from console or logfile for Logger"
+        assert console == True or logfile is not None, (
+            "At least enable one from console or logfile for Logger"
+        )
         # 第一步，创建一个logger
         self.logger = logging.getLogger("my_logger")
         self.logger.setLevel(logging.INFO)  # Log等级总开关
@@ -242,9 +271,16 @@ class Logger(object):
         self.logger.critical(message)
 
 
-def get_logger(name="default", default_level=logging.INFO, default_file_level=logging.INFO, log_path=""):
+def get_logger(
+    name="default",
+    default_level=logging.INFO,
+    default_file_level=logging.INFO,
+    log_path="",
+):
     setup_default_logging(
-        default_level=default_level, default_file_level=default_file_level, log_path=log_path
+        default_level=default_level,
+        default_file_level=default_file_level,
+        log_path=log_path,
     )
     return logging.getLogger(name)
 
