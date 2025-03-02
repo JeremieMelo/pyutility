@@ -3,7 +3,7 @@ Description:
 Author: Jiaqi Gu (jqgu@utexas.edu)
 Date: 2021-06-06 01:55:29
 LastEditors: Jiaqi Gu && jiaqigu@asu.edu
-LastEditTime: 2025-03-02 01:57:35
+LastEditTime: 2025-03-02 02:03:10
 """
 
 import argparse
@@ -112,7 +112,12 @@ class Timer(object):
 
 class TimerCtx:
     def __enter__(
-        self, enable: bool = True, desc: str = "", verbose: bool = True, n_avg: int = 1
+        self,
+        enable: bool = True,
+        desc: str = "",
+        verbose: bool = True,
+        n_avg: int = 1,
+        logger=None,
     ):
         if enable:
             self.start = time.time()
@@ -122,6 +127,7 @@ class TimerCtx:
         self.avg_interval = 0
         self.n_avg = n_avg
         self.verbose = verbose
+        self.logger = logger
         return self
 
     def __exit__(self, *args):
@@ -130,9 +136,11 @@ class TimerCtx:
             self.interval = self.end - self.start
             self.avg_interval = self.interval / self.n_avg
             if self.verbose:
-                print(
-                    f"[Timer] {self.desc} ({self.interval:.6f} s, {self.avg_interval:.6f} s/iter)"
-                )
+                log = f"[Timer] {self.desc} ({self.interval:.6f} s, {self.avg_interval:.6f} s/iter)"
+                if self.logger is None:
+                    print(log)
+                else:
+                    self.logger.info(log)
 
 
 class TorchTracemalloc(object):
