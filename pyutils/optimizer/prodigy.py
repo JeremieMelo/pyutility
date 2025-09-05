@@ -1,11 +1,11 @@
+import logging
 import math
+import os
 from typing import TYPE_CHECKING, Any, Callable, Optional
 
 import torch
-import torch.optim
-import logging
-import os
 import torch.distributed as dist
+import torch.optim
 
 if TYPE_CHECKING:
     from torch.optim.optimizer import _params_t

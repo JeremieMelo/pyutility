@@ -5,14 +5,16 @@ Date: 2021-06-10 03:14:32
 LastEditors: Jiaqi Gu (jqgu@utexas.edu)
 LastEditTime: 2021-06-10 03:14:32
 """
+
 """ Lookahead Optimizer Wrapper.
 Implementation modified from: https://github.com/alphadl/lookahead.pytorch
 Paper: `Lookahead Optimizer: k steps forward, 1 step back` - https://arxiv.org/abs/1907.08610
 Hacked together by / Copyright 2020 Ross Wightman
 """
+from collections import defaultdict
+
 import torch
 from torch.optim.optimizer import Optimizer
-from collections import defaultdict
 
 
 class Lookahead(Optimizer):
@@ -59,7 +61,10 @@ class Lookahead(Optimizer):
 
     def state_dict(self):
         fast_state_dict = self.base_optimizer.state_dict()
-        slow_state = {(id(k) if isinstance(k, torch.Tensor) else k): v for k, v in self.state.items()}
+        slow_state = {
+            (id(k) if isinstance(k, torch.Tensor) else k): v
+            for k, v in self.state.items()
+        }
         fast_state = fast_state_dict["state"]
         param_groups = fast_state_dict["param_groups"]
         return {
@@ -84,10 +89,14 @@ class Lookahead(Optimizer):
             slow_state_new = True
         slow_state_dict = {
             "state": state_dict["slow_state"],
-            "param_groups": state_dict["param_groups"],  # this is pointless but saves code
+            "param_groups": state_dict[
+                "param_groups"
+            ],  # this is pointless but saves code
         }
         super(Lookahead, self).load_state_dict(slow_state_dict)
-        self.param_groups = self.base_optimizer.param_groups  # make both ref same container
+        self.param_groups = (
+            self.base_optimizer.param_groups
+        )  # make both ref same container
         if slow_state_new:
             # reapply defaults to catch missing lookahead specific ones
             for name, default in self.defaults.items():

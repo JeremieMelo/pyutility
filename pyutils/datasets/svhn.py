@@ -5,12 +5,14 @@ Date: 2021-09-26 00:20:14
 LastEditors: Jiaqi Gu (jqgu@utexas.edu)
 LastEditTime: 2021-09-26 00:46:14
 """
-import torch
 
-from torchvision import datasets, transforms
 from typing import List
-from pyutils.general import logger
+
+import torch
+from torchvision import datasets, transforms
 from torchvision.transforms import InterpolationMode
+
+from pyutils.general import logger
 
 resize_modes = {
     "bilinear": InterpolationMode.BILINEAR,
@@ -57,10 +59,10 @@ class SVHNDataset(torch.utils.data.Dataset):
         self.n_instance = len(self.data)
 
     def load(self):
-        
+
         SVHN_TRAIN_MEAN = (0.4377, 0.4438, 0.4728)
         SVHN_TRAIN_STD = (0.1980, 0.2010, 0.1970)
-            
+
         if self.augment:
             transform_train = [
                 transforms.RandomCrop(32, padding=4),
@@ -72,13 +74,17 @@ class SVHNDataset(torch.utils.data.Dataset):
             if not self.center_crop == 32:
                 transform_train.append(transforms.CenterCrop(self.center_crop))
             if not self.resize == 32:
-                transform_train.append(transforms.Resize(self.resize, interpolation=self.resize_mode))
+                transform_train.append(
+                    transforms.Resize(self.resize, interpolation=self.resize_mode)
+                )
 
         transform_test = []
         if not self.center_crop == 32:
             transform_test.append(transforms.CenterCrop(self.center_crop))
         if not self.resize == 32:
-            transform_test.append(transforms.Resize(self.resize, interpolation=self.resize_mode))
+            transform_test.append(
+                transforms.Resize(self.resize, interpolation=self.resize_mode)
+            )
 
         if self.grayscale:
             raise NotImplementedError
@@ -94,12 +100,15 @@ class SVHNDataset(torch.utils.data.Dataset):
 
         transform_train = transforms.Compose(transform_train)
         transform_test = transforms.Compose(transform_test)
-                    
 
         if self.split == "train" or self.split == "valid":
-            train_valid = datasets.SVHN(self.root, split="train", download=True, transform=transform_train)
+            train_valid = datasets.SVHN(
+                self.root, split="train", download=True, transform=transform_train
+            )
             targets = torch.tensor(train_valid.labels)
-            idx, _ = torch.stack([targets == number for number in self.digits_of_interest]).max(dim=0)
+            idx, _ = torch.stack(
+                [targets == number for number in self.digits_of_interest]
+            ).max(dim=0)
             # targets = targets[idx]
             train_valid.labels = targets[idx].numpy().tolist()
             train_valid.data = train_valid.data[idx]
@@ -119,12 +128,20 @@ class SVHNDataset(torch.utils.data.Dataset):
                     # use a subset of valid set, useful to speedup evo search
                     valid_subset.indices = valid_subset.indices[: self.n_valid_samples]
                     self.data = valid_subset
-                    logger.warning(f"Only use the front " f"{self.n_valid_samples} images as " f"VALID set.")
+                    logger.warning(
+                        f"Only use the front "
+                        f"{self.n_valid_samples} images as "
+                        f"VALID set."
+                    )
 
         else:
-            test = datasets.SVHN(self.root, split="test", transform=transform_test, download=True)
+            test = datasets.SVHN(
+                self.root, split="test", transform=transform_test, download=True
+            )
             targets = torch.tensor(test.labels)
-            idx, _ = torch.stack([targets == number for number in self.digits_of_interest]).max(dim=0)
+            idx, _ = torch.stack(
+                [targets == number for number in self.digits_of_interest]
+            ).max(dim=0)
             test.labels = targets[idx].numpy().tolist()
             test.data = test.data[idx]
             if self.n_test_samples is None:
@@ -135,12 +152,16 @@ class SVHNDataset(torch.utils.data.Dataset):
                 test.labels = test.labels[: self.n_test_samples]
                 test.data = test.data[: self.n_test_samples]
                 self.data = test
-                logger.warning(f"Only use the front {self.n_test_samples} " f"images as TEST set.")
+                logger.warning(
+                    f"Only use the front {self.n_test_samples} " f"images as TEST set."
+                )
 
     def __getitem__(self, index: int):
         img = self.data[index][0]
         if self.binarize:
-            img = 1.0 * (img > self.binarize_threshold) + -1.0 * (img <= self.binarize_threshold)
+            img = 1.0 * (img > self.binarize_threshold) + -1.0 * (
+                img <= self.binarize_threshold
+            )
 
         digit = self.digits_of_interest.index(self.data[index][1])
         return img, torch.tensor(digit).long()

@@ -5,12 +5,14 @@ Date: 2021-09-26 00:20:14
 LastEditors: Jiaqi Gu (jqgu@utexas.edu)
 LastEditTime: 2021-09-26 00:46:14
 """
-import torch
 
-from torchvision import datasets, transforms
 from typing import Any, Callable, List, Optional, Tuple
-from pyutils.general import logger
+
+import torch
+from torchvision import datasets, transforms
 from torchvision.transforms import InterpolationMode
+
+from pyutils.general import logger
 
 resize_modes = {
     "bilinear": InterpolationMode.BILINEAR,
@@ -24,13 +26,14 @@ __all__ = ["CIFAR100Dataset"]
 class PreProcessCIFAR100(datasets.CIFAR100):
     mean = [0.50707516, 0.48654887, 0.44091784]
     std = [0.26733429, 0.25643846, 0.27615047]
+
     def __init__(
         self,
         root: str,
         train: bool = True,
         transform: Optional[Callable] = None,
         target_transform: Optional[Callable] = None,
-        download: bool = False
+        download: bool = False,
     ) -> None:
         super().__init__(root, train, transform, target_transform, download)
 
@@ -48,13 +51,13 @@ class PreProcessCIFAR100(datasets.CIFAR100):
         img, target = self.data[index], self.targets[index]
         # img = self.data[index]
         # target = self.targets[index]
-        
+
         if self.transform is not None:
             img = self.transform(img)
 
         if self.target_transform is not None:
             target = self.target_transform(target)
-        
+
         return img, target
 
 
@@ -105,21 +108,32 @@ class CIFAR100Dataset(torch.utils.data.Dataset):
             if not self.center_crop == 32:
                 transform_train.append(transforms.CenterCrop(self.center_crop))
             if not self.resize == 32:
-                transform_train.append(transforms.Resize(self.resize, interpolation=self.resize_mode))
+                transform_train.append(
+                    transforms.Resize(self.resize, interpolation=self.resize_mode)
+                )
 
         transform_test = []
         if not self.center_crop == 32:
             transform_test.append(transforms.CenterCrop(self.center_crop))
         if not self.resize == 32:
-            transform_test.append(transforms.Resize(self.resize, interpolation=self.resize_mode))
+            transform_test.append(
+                transforms.Resize(self.resize, interpolation=self.resize_mode)
+            )
 
-        if self.grayscale: # TODO
+        if self.grayscale:  # TODO
             transform_train += [
                 transforms.ToTensor(),
                 transforms.Grayscale(num_output_channels=1),
                 transforms.Normalize(
                     (0.2989 * 0.4914 + 0.587 * 0.4822 + 0.114 * 0.4465,),
-                    (((0.2989 * 0.2023) ** 2 + (0.587 * 0.1994) ** 2 + (0.114 * 0.2010) ** 2) ** 0.5,),
+                    (
+                        (
+                            (0.2989 * 0.2023) ** 2
+                            + (0.587 * 0.1994) ** 2
+                            + (0.114 * 0.2010) ** 2
+                        )
+                        ** 0.5,
+                    ),
                 ),
             ]
             transform_test += [
@@ -127,17 +141,30 @@ class CIFAR100Dataset(torch.utils.data.Dataset):
                 transforms.Grayscale(num_output_channels=1),
                 transforms.Normalize(
                     (0.2989 * 0.4914 + 0.587 * 0.4822 + 0.114 * 0.4465,),
-                    (((0.2989 * 0.2023) ** 2 + (0.587 * 0.1994) ** 2 + (0.114 * 0.2010) ** 2) ** 0.5,),
+                    (
+                        (
+                            (0.2989 * 0.2023) ** 2
+                            + (0.587 * 0.1994) ** 2
+                            + (0.114 * 0.2010) ** 2
+                        )
+                        ** 0.5,
+                    ),
                 ),
             ]
         else:
             transform_train += [
                 transforms.ToTensor(),
-                transforms.Normalize((0.50707516, 0.48654887, 0.44091784), (0.26733429, 0.25643846, 0.27615047)),
+                transforms.Normalize(
+                    (0.50707516, 0.48654887, 0.44091784),
+                    (0.26733429, 0.25643846, 0.27615047),
+                ),
             ]
             transform_test += [
                 transforms.ToTensor(),
-                transforms.Normalize((0.50707516, 0.48654887, 0.44091784), (0.26733429, 0.25643846, 0.27615047)),
+                transforms.Normalize(
+                    (0.50707516, 0.48654887, 0.44091784),
+                    (0.26733429, 0.25643846, 0.27615047),
+                ),
             ]
 
         transform_train = transforms.Compose(transform_train)
@@ -145,10 +172,15 @@ class CIFAR100Dataset(torch.utils.data.Dataset):
 
         if self.split == "train" or self.split == "valid":
             train_valid = datasets.CIFAR100(
-                self.root, train=True, download=True, transform=transform_train if self.split == "train" else transform_test,
+                self.root,
+                train=True,
+                download=True,
+                transform=transform_train if self.split == "train" else transform_test,
             )
             targets = torch.tensor(train_valid.targets)
-            idx, _ = torch.stack([targets == number for number in self.digits_of_interest]).max(dim=0)
+            idx, _ = torch.stack(
+                [targets == number for number in self.digits_of_interest]
+            ).max(dim=0)
             # targets = targets[idx]
             train_valid.targets = targets[idx].cpu().numpy().tolist()
             train_valid.data = train_valid.data[idx]
@@ -168,12 +200,18 @@ class CIFAR100Dataset(torch.utils.data.Dataset):
                     # use a subset of valid set, useful to speedup evo search
                     valid_subset.indices = valid_subset.indices[: self.n_valid_samples]
                     self.data = valid_subset
-                    logger.warning(f"Only use the front " f"{self.n_valid_samples} images as " f"VALID set.")
+                    logger.warning(
+                        f"Only use the front "
+                        f"{self.n_valid_samples} images as "
+                        f"VALID set."
+                    )
 
         else:
             test = datasets.CIFAR100(self.root, train=False, transform=transform_test)
             targets = torch.tensor(test.targets)
-            idx, _ = torch.stack([targets == number for number in self.digits_of_interest]).max(dim=0)
+            idx, _ = torch.stack(
+                [targets == number for number in self.digits_of_interest]
+            ).max(dim=0)
             test.targets = targets[idx].cpu().numpy().tolist()
             test.data = test.data[idx]
             if self.n_test_samples is None:
@@ -184,12 +222,16 @@ class CIFAR100Dataset(torch.utils.data.Dataset):
                 test.targets = test.targets[: self.n_test_samples]
                 test.data = test.data[: self.n_test_samples]
                 self.data = test
-                logger.warning(f"Only use the front {self.n_test_samples} " f"images as TEST set.")
+                logger.warning(
+                    f"Only use the front {self.n_test_samples} " f"images as TEST set."
+                )
 
     def __getitem__(self, index: int):
         img = self.data[index][0]
         if self.binarize:
-            img = 1.0 * (img > self.binarize_threshold) + -1.0 * (img <= self.binarize_threshold)
+            img = 1.0 * (img > self.binarize_threshold) + -1.0 * (
+                img <= self.binarize_threshold
+            )
 
         digit = self.digits_of_interest.index(self.data[index][1])
         return img, torch.tensor(digit).long()

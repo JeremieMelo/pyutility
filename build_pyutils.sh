@@ -19,10 +19,9 @@
 # echo "Finished mamba install";
 
 python setup.py sdist bdist_wheel;
-whl2conda convert dist/torchonn_pyutils-0.0.3.1-py3-none-any.whl;
-whl2conda install dist/torchonn-pyutils-0.0.3.1-py_0.conda --conda-bld;
+whl2conda convert dist/torchonn_pyutils-0.0.3.2-py3-none-any.whl;
+whl2conda install dist/torchonn-pyutils-0.0.3.2-py_0.conda --conda-bld;
 ## install locally
 mamba install --use-local torchonn-pyutils
 ## upload to anaconda
-# anaconda upload -c ScopeX dist/torchonn-pyutils-0.0.3.1-py_0.conda --force;
-
+# anaconda upload -c ScopeX dist/torchonn-pyutils-0.0.3.2-py_0.conda --force;

@@ -1,10 +1,10 @@
-'''
+"""
 Description:
 Author: Jiaqi Gu (jqgu@utexas.edu)
 Date: 2021-05-19 03:51:51
 LastEditors: Jiaqi Gu (jqgu@utexas.edu)
 LastEditTime: 2022-02-06 23:59:07
-'''
+"""
 
 import logging
 
@@ -32,7 +32,7 @@ def swish_fwd(x: Tensor) -> Tensor:
 def swish_bwd(x: Tensor, grad_output: Tensor) -> Tensor:
     x_sigmoid = torch.sigmoid(x)
     # return grad_output * (x_sigmoid * (1. + x * (1. - x_sigmoid)))
-    output = (1-x_sigmoid).mul_(x).add_(1).mul_(x_sigmoid)
+    output = (1 - x_sigmoid).mul_(x).add_(1).mul_(x_sigmoid)
     del x_sigmoid
     return output.mul_(grad_output)
 
@@ -57,7 +57,9 @@ class Swish(nn.Module):
     def __init__(self, inplace: bool = True, memory_efficient: bool = True) -> None:
         super(Swish, self).__init__()
         self.inplace = inplace
-        self.swish = self.memory_efficient_swish if memory_efficient else self.original_swish
+        self.swish = (
+            self.memory_efficient_swish if memory_efficient else self.original_swish
+        )
 
     def original_swish(self, x, inplace: bool = False) -> Tensor:
         return x.mul_(x.sigmoid()) if inplace else x.mul(x.sigmoid())
@@ -93,16 +95,15 @@ class ReLUN(nn.Hardtanh):
     """
 
     def __init__(self, N: float, inplace: bool = False) -> None:
-        super().__init__(0., N, inplace)
+        super().__init__(0.0, N, inplace)
 
     def extra_repr(self) -> str:
-        inplace_str = 'inplace' if self.inplace else ''
+        inplace_str = "inplace" if self.inplace else ""
         return inplace_str
 
 
 class CReLU(nn.Module):
-    """ Complex ReLU which applies ReLU on real and imag individually
-    """
+    """Complex ReLU which applies ReLU on real and imag individually"""
 
     def __init__(self, inplace: bool = False) -> None:
         super().__init__()
@@ -110,7 +111,8 @@ class CReLU(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         assert torch.is_complex(
-            x), f"CReLU only supports complex-valued input tensor, but got {type(x)}"
+            x
+        ), f"CReLU only supports complex-valued input tensor, but got {type(x)}"
         if self.inplace:
             x.real.relu_()
             x.imag.relu_()

@@ -5,6 +5,7 @@ Date: 2021-06-06 01:11:12
 LastEditors: Jiaqi Gu (jqgu@utexas.edu)
 LastEditTime: 2021-06-06 01:11:12
 """
+
 from __future__ import print_function
 
 import os
@@ -14,10 +15,7 @@ import scipy.io
 from torchvision import transforms
 from torchvision.datasets import VisionDataset
 from torchvision.datasets.folder import default_loader
-from torchvision.datasets.utils import (
-    download_url,
-    extract_archive,
-)
+from torchvision.datasets.utils import download_url, extract_archive
 
 __all__ = ["StanfordCars"]
 
@@ -42,14 +40,23 @@ class StanfordCars(VisionDataset):
     folder = "StanfordCars"
     file_list = {
         "imgs": ("http://ai.stanford.edu/~jkrause/car196/car_ims.tgz", "car_ims.tgz"),
-        "annos": ("http://ai.stanford.edu/~jkrause/car196/cars_annos.mat", "cars_annos.mat"),
+        "annos": (
+            "http://ai.stanford.edu/~jkrause/car196/cars_annos.mat",
+            "cars_annos.mat",
+        ),
     }
 
-    def __init__(self, root, train=True, transform=None, target_transform=None, download=False):
+    def __init__(
+        self, root, train=True, transform=None, target_transform=None, download=False
+    ):
         root = join(os.path.expanduser(root), self.folder)
         if transform is None:
-            transform = transforms.Compose([transforms.Resize(size=(256, 256)), transforms.ToTensor()])
-        super(StanfordCars, self).__init__(root, transform=transform, target_transform=target_transform)
+            transform = transforms.Compose(
+                [transforms.Resize(size=(256, 256)), transforms.ToTensor()]
+            )
+        super(StanfordCars, self).__init__(
+            root, transform=transform, target_transform=target_transform
+        )
 
         self.loader = default_loader
         self.train = train
@@ -59,9 +66,13 @@ class StanfordCars(VisionDataset):
         elif download:
             self._download()
         else:
-            raise RuntimeError("Dataset not found. You can use download=True to download it.")
+            raise RuntimeError(
+                "Dataset not found. You can use download=True to download it."
+            )
 
-        loaded_mat = scipy.io.loadmat(os.path.join(self.root, self.file_list["annos"][1]))
+        loaded_mat = scipy.io.loadmat(
+            os.path.join(self.root, self.file_list["annos"][1])
+        )
         loaded_mat = loaded_mat["annotations"][0]
         self.samples = []
         for item in loaded_mat:
@@ -85,9 +96,9 @@ class StanfordCars(VisionDataset):
         return len(self.samples)
 
     def _check_exists(self):
-        return os.path.exists(os.path.join(self.root, self.file_list["imgs"][1])) and os.path.exists(
-            os.path.join(self.root, self.file_list["annos"][1])
-        )
+        return os.path.exists(
+            os.path.join(self.root, self.file_list["imgs"][1])
+        ) and os.path.exists(os.path.join(self.root, self.file_list["annos"][1]))
 
     def _download(self):
         print("Downloading...")

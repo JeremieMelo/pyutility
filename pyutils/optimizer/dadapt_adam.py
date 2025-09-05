@@ -6,15 +6,15 @@
 """
 https://github.com/facebookresearch/dadaptation/blob/main/dadaptation/dadapt_adam.py
 """
+import logging
 import math
+import os
+import pdb
 from typing import TYPE_CHECKING, Any, Callable, Optional
 
 import torch
-import torch.optim
-import pdb
-import logging
-import os
 import torch.distributed as dist
+import torch.optim
 
 if TYPE_CHECKING:
     from torch.optim.optimizer import _params_t

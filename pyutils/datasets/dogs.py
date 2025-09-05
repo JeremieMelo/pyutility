@@ -5,6 +5,7 @@ Date: 2021-06-06 01:10:03
 LastEditors: Jiaqi Gu (jqgu@utexas.edu)
 LastEditTime: 2021-06-06 01:10:03
 """
+
 from __future__ import print_function
 
 import os
@@ -13,10 +14,7 @@ from os.path import join
 import scipy.io
 import torch
 from PIL import Image
-from torchvision.datasets.utils import (
-    download_url,
-    list_dir,
-)
+from torchvision.datasets.utils import download_url, list_dir
 
 __all__ = ["StanfordDogs"]
 
@@ -42,7 +40,13 @@ class StanfordDogs(torch.utils.data.Dataset):
     download_url_prefix = "http://vision.stanford.edu/aditya86/ImageNetDogs"
 
     def __init__(
-        self, root, train=True, cropped=False, transform=None, target_transform=None, download=False
+        self,
+        root,
+        train=True,
+        cropped=False,
+        transform=None,
+        target_transform=None,
+        download=False,
     ):
 
         self.root = join(os.path.expanduser(root), self.folder)
@@ -62,16 +66,22 @@ class StanfordDogs(torch.utils.data.Dataset):
 
         if self.cropped:
             self._breed_annotations = [
-                [(annotation, box, idx) for box in self.get_boxes(join(self.annotations_folder, annotation))]
+                [
+                    (annotation, box, idx)
+                    for box in self.get_boxes(join(self.annotations_folder, annotation))
+                ]
                 for annotation, idx in split
             ]
             self._flat_breed_annotations = sum(self._breed_annotations, [])
 
             self._flat_breed_images = [
-                (annotation + ".jpg", idx) for annotation, box, idx in self._flat_breed_annotations
+                (annotation + ".jpg", idx)
+                for annotation, box, idx in self._flat_breed_annotations
             ]
         else:
-            self._breed_images = [(annotation + ".jpg", idx) for annotation, idx in split]
+            self._breed_images = [
+                (annotation + ".jpg", idx) for annotation, idx in split
+            ]
 
             self._flat_breed_images = self._breed_images
 
@@ -226,7 +236,9 @@ class StanfordDogs(torch.utils.data.Dataset):
     def download(self):
         import tarfile
 
-        if os.path.exists(join(self.root, "Images")) and os.path.exists(join(self.root, "Annotation")):
+        if os.path.exists(join(self.root, "Images")) and os.path.exists(
+            join(self.root, "Annotation")
+        ):
             if (
                 len(os.listdir(join(self.root, "Images")))
                 == len(os.listdir(join(self.root, "Annotation")))
@@ -263,10 +275,14 @@ class StanfordDogs(torch.utils.data.Dataset):
 
     def load_split(self):
         if self.train:
-            split = scipy.io.loadmat(join(self.root, "train_list.mat"))["annotation_list"]
+            split = scipy.io.loadmat(join(self.root, "train_list.mat"))[
+                "annotation_list"
+            ]
             labels = scipy.io.loadmat(join(self.root, "train_list.mat"))["labels"]
         else:
-            split = scipy.io.loadmat(join(self.root, "test_list.mat"))["annotation_list"]
+            split = scipy.io.loadmat(join(self.root, "test_list.mat"))[
+                "annotation_list"
+            ]
             labels = scipy.io.loadmat(join(self.root, "test_list.mat"))["labels"]
 
         split = [item[0][0] for item in split]

@@ -6,14 +6,17 @@ LastEditors: Jiaqi Gu (jqgu@utexas.edu)
 LastEditTime: 2021-03-07 22:05:56
 """
 
-import torch
 import numpy as np
-from pyutils.datasets import StanfordCars, OxfordFlowers, TinyImageNet, get_dataset
+import torch
+
+from pyutils.datasets import OxfordFlowers, StanfordCars, TinyImageNet, get_dataset
 
 
 def stanfordcars():
     train_set = StanfordCars("./data", download=True)
-    loader = torch.utils.data.DataLoader(train_set, batch_size=100, num_workers=2, shuffle=False)
+    loader = torch.utils.data.DataLoader(
+        train_set, batch_size=100, num_workers=2, shuffle=False
+    )
 
     mean = 0.0
     for images, _ in loader:
@@ -33,7 +36,9 @@ def stanfordcars():
 
 def oxfordflowers():
     train_set = OxfordFlowers("./data", download=True)
-    loader = torch.utils.data.DataLoader(train_set, batch_size=100, num_workers=2, shuffle=False)
+    loader = torch.utils.data.DataLoader(
+        train_set, batch_size=100, num_workers=2, shuffle=False
+    )
     print(len(loader.dataset))
 
     mean = 0.0
@@ -54,7 +59,9 @@ def oxfordflowers():
 
 def tinyimagenet():
     train_set = TinyImageNet("./data", download=True)
-    loader = torch.utils.data.DataLoader(train_set, batch_size=100, num_workers=2, shuffle=False)
+    loader = torch.utils.data.DataLoader(
+        train_set, batch_size=100, num_workers=2, shuffle=False
+    )
     print(len(loader.dataset))
 
     mean = 0.0
@@ -75,7 +82,9 @@ def tinyimagenet():
 
 def svhn():
     train_set, _ = get_dataset("svhn", 32, 32, "./data")
-    loader = torch.utils.data.DataLoader(train_set, batch_size=100, num_workers=2, shuffle=False)
+    loader = torch.utils.data.DataLoader(
+        train_set, batch_size=100, num_workers=2, shuffle=False
+    )
     print(len(loader.dataset))
 
     mean = 0.0

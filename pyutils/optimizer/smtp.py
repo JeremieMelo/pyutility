@@ -5,9 +5,11 @@ Date: 2021-06-06 01:32:01
 LastEditors: Jiaqi Gu (jqgu@utexas.edu)
 LastEditTime: 2021-06-06 01:32:01
 """
+
+import math
+
 import torch
 from torch.optim.optimizer import Optimizer, required
-import math
 
 __all__ = ["SMTP"]
 
@@ -90,8 +92,18 @@ class SMTP(Optimizer):
                 sorted_obj = sorted(
                     [
                         (p.data, v_k, z_k, self.obj_fn(z_k)),
-                        (x_k_plus_1_p, v_k_plus_1_p, z_k_plus_1_p, self.obj_fn(z_k_plus_1_p)),
-                        (x_k_plus_1_n, v_k_plus_1_n, z_k_plus_1_n, self.obj_fn(z_k_plus_1_n)),
+                        (
+                            x_k_plus_1_p,
+                            v_k_plus_1_p,
+                            z_k_plus_1_p,
+                            self.obj_fn(z_k_plus_1_p),
+                        ),
+                        (
+                            x_k_plus_1_n,
+                            v_k_plus_1_n,
+                            z_k_plus_1_n,
+                            self.obj_fn(z_k_plus_1_n),
+                        ),
                     ],
                     key=lambda x: x[3],
                 )

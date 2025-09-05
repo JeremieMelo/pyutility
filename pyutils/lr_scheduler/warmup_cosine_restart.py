@@ -5,8 +5,10 @@ Date: 2021-06-10 00:04:11
 LastEditors: Jiaqi Gu (jqgu@utexas.edu)
 LastEditTime: 2021-06-10 00:04:19
 """
-import torch
+
 import math
+
+import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
 __all__ = ["CosineAnnealingWarmupRestarts"]
@@ -65,7 +67,8 @@ class CosineAnnealingWarmupRestarts(_LRScheduler):
             return self.base_lrs
         elif self.step_in_cycle < self.warmup_steps:
             return [
-                (self.max_lr - base_lr) * self.step_in_cycle / self.warmup_steps + base_lr
+                (self.max_lr - base_lr) * self.step_in_cycle / self.warmup_steps
+                + base_lr
                 for base_lr in self.base_lrs
             ]
         else:
@@ -92,7 +95,8 @@ class CosineAnnealingWarmupRestarts(_LRScheduler):
                 self.cycle += 1
                 self.step_in_cycle = self.step_in_cycle - self.cur_cycle_steps
                 self.cur_cycle_steps = (
-                    int((self.cur_cycle_steps - self.warmup_steps) * self.cycle_mult) + self.warmup_steps
+                    int((self.cur_cycle_steps - self.warmup_steps) * self.cycle_mult)
+                    + self.warmup_steps
                 )
         else:
             if epoch >= self.first_cycle_steps:
@@ -102,19 +106,27 @@ class CosineAnnealingWarmupRestarts(_LRScheduler):
                 else:
                     n = int(
                         math.log(
-                            (epoch / self.first_cycle_steps * (self.cycle_mult - 1) + 1), self.cycle_mult
+                            (
+                                epoch / self.first_cycle_steps * (self.cycle_mult - 1)
+                                + 1
+                            ),
+                            self.cycle_mult,
                         )
                     )
                     self.cycle = n
                     self.step_in_cycle = epoch - int(
-                        self.first_cycle_steps * (self.cycle_mult ** n - 1) / (self.cycle_mult - 1)
+                        self.first_cycle_steps
+                        * (self.cycle_mult**n - 1)
+                        / (self.cycle_mult - 1)
                     )
-                    self.cur_cycle_steps = self.first_cycle_steps * self.cycle_mult ** (n)
+                    self.cur_cycle_steps = self.first_cycle_steps * self.cycle_mult ** (
+                        n
+                    )
             else:
                 self.cur_cycle_steps = self.first_cycle_steps
                 self.step_in_cycle = epoch
 
-        self.max_lr = self.base_max_lr * (self.gamma ** self.cycle)
+        self.max_lr = self.base_max_lr * (self.gamma**self.cycle)
         self.last_epoch = math.floor(epoch)
         for param_group, lr in zip(self.optimizer.param_groups, self.get_lr()):
             param_group["lr"] = lr

@@ -245,9 +245,9 @@ class Logger(object):
         self.logfile = logfile
         self.console_level = console_level
         self.logifle_level = logfile_level
-        assert console == True or logfile is not None, (
-            "At least enable one from console or logfile for Logger"
-        )
+        assert (
+            console == True or logfile is not None
+        ), "At least enable one from console or logfile for Logger"
         # 第一步，创建一个logger
         self.logger = logging.getLogger("my_logger")
         self.logger.setLevel(logging.INFO)  # Log等级总开关

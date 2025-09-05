@@ -5,9 +5,11 @@ Date: 2021-06-06 01:29:03
 LastEditors: Jiaqi Gu (jqgu@utexas.edu)
 LastEditTime: 2021-06-06 01:29:03
 """
+
+import math
+
 import torch
 from torch.optim.optimizer import Optimizer, required
-import math
 
 __all__ = ["Adam_GC"]
 
@@ -33,7 +35,15 @@ class Adam_GC(Optimizer):
         https://openreview.net/forum?id=ryQu7f-RZ
     """
 
-    def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8, weight_decay=0, amsgrad=False):
+    def __init__(
+        self,
+        params,
+        lr=1e-3,
+        betas=(0.9, 0.999),
+        eps=1e-8,
+        weight_decay=0,
+        amsgrad=False,
+    ):
         if not 0.0 <= lr:
             raise ValueError("Invalid learning rate: {}".format(lr))
         if not 0.0 <= eps:
@@ -42,7 +52,9 @@ class Adam_GC(Optimizer):
             raise ValueError("Invalid beta parameter at index 0: {}".format(betas[0]))
         if not 0.0 <= betas[1] < 1.0:
             raise ValueError("Invalid beta parameter at index 1: {}".format(betas[1]))
-        defaults = dict(lr=lr, betas=betas, eps=eps, weight_decay=weight_decay, amsgrad=amsgrad)
+        defaults = dict(
+            lr=lr, betas=betas, eps=eps, weight_decay=weight_decay, amsgrad=amsgrad
+        )
         super(Adam_GC, self).__init__(params, defaults)
 
     def __setstate__(self, state):
@@ -107,9 +119,13 @@ class Adam_GC(Optimizer):
                     # Maintains the maximum of all 2nd moment running avg. till now
                     torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
                     # Use the max. for normalizing running avg. of gradient
-                    denom = (max_exp_avg_sq.sqrt() / math.sqrt(bias_correction2)).add_(group["eps"])
+                    denom = (max_exp_avg_sq.sqrt() / math.sqrt(bias_correction2)).add_(
+                        group["eps"]
+                    )
                 else:
-                    denom = (exp_avg_sq.sqrt() / math.sqrt(bias_correction2)).add_(group["eps"])
+                    denom = (exp_avg_sq.sqrt() / math.sqrt(bias_correction2)).add_(
+                        group["eps"]
+                    )
 
                 step_size = group["lr"] / bias_correction1
 

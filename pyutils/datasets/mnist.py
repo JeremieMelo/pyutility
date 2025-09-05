@@ -6,13 +6,13 @@ LastEditors: Jiaqi Gu (jqgu@utexas.edu)
 LastEditTime: 2021-09-26 00:31:58
 """
 
-import torch
-
-from torchvision import datasets, transforms
 from typing import List
-from pyutils.general import logger
+
+import torch
+from torchvision import datasets, transforms
 from torchvision.transforms import InterpolationMode
 
+from pyutils.general import logger
 
 __all__ = ["MNISTDataset"]
 
@@ -64,10 +64,12 @@ class MNISTDataset(torch.utils.data.Dataset):
         transform = transforms.Compose(tran)
 
         if self.split == "train" or self.split == "valid":
-            train_valid = datasets.MNIST(self.root, train=True, download=True, transform=transform)
-            idx, _ = torch.stack([train_valid.targets == number for number in self.digits_of_interest]).max(
-                dim=0
+            train_valid = datasets.MNIST(
+                self.root, train=True, download=True, transform=transform
             )
+            idx, _ = torch.stack(
+                [train_valid.targets == number for number in self.digits_of_interest]
+            ).max(dim=0)
             train_valid.targets = train_valid.targets[idx]
             train_valid.data = train_valid.data[idx]
 
@@ -87,11 +89,17 @@ class MNISTDataset(torch.utils.data.Dataset):
                     # use a subset of valid set, useful to speedup evo search
                     valid_subset.indices = valid_subset.indices[: self.n_valid_samples]
                     self.data = valid_subset
-                    logger.warning(f"Only use the front " f"{self.n_valid_samples} images as " f"VALID set.")
+                    logger.warning(
+                        f"Only use the front "
+                        f"{self.n_valid_samples} images as "
+                        f"VALID set."
+                    )
 
         else:
             test = datasets.MNIST(self.root, train=False, transform=transform)
-            idx, _ = torch.stack([test.targets == number for number in self.digits_of_interest]).max(dim=0)
+            idx, _ = torch.stack(
+                [test.targets == number for number in self.digits_of_interest]
+            ).max(dim=0)
             test.targets = test.targets[idx]
             test.data = test.data[idx]
             if self.n_test_samples is None:
@@ -102,12 +110,16 @@ class MNISTDataset(torch.utils.data.Dataset):
                 test.targets = test.targets[: self.n_test_samples]
                 test.data = test.data[: self.n_test_samples]
                 self.data = test
-                logger.warning(f"Only use the front {self.n_test_samples} " f"images as TEST set.")
+                logger.warning(
+                    f"Only use the front {self.n_test_samples} " f"images as TEST set."
+                )
 
     def __getitem__(self, index: int):
         img = self.data[index][0]
         if self.binarize:
-            img = 1.0 * (img > self.binarize_threshold) + -1.0 * (img <= self.binarize_threshold)
+            img = 1.0 * (img > self.binarize_threshold) + -1.0 * (
+                img <= self.binarize_threshold
+            )
         digit = self.digits_of_interest.index(self.data[index][1])
         return img, torch.tensor(digit).long()
         # instance = {'image': img, 'digit': digit}
@@ -118,23 +130,23 @@ class MNISTDataset(torch.utils.data.Dataset):
 
 
 def test():
-    mnist = MNISTDataset(root='../../data',
-                         split='train',
-                         train_valid_split_ratio=[0.9, 0.1],
-                         center_crop=28,
-                         resize=28,
-                         resize_mode='bilinear',
-                         binarize=False,
-                         binarize_threshold=0.1307,
-                         digits_of_interest=(3, 6),
-                         n_test_samples=100,
-                         n_valid_samples=1000,
-                         )
+    mnist = MNISTDataset(
+        root="../../data",
+        split="train",
+        train_valid_split_ratio=[0.9, 0.1],
+        center_crop=28,
+        resize=28,
+        resize_mode="bilinear",
+        binarize=False,
+        binarize_threshold=0.1307,
+        digits_of_interest=(3, 6),
+        n_test_samples=100,
+        n_valid_samples=1000,
+    )
     data, label = mnist.__getitem__(20)
     print(data.size(), label.size())
-    print('finish')
+    print("finish")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test()
-

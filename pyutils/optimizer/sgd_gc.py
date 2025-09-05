@@ -5,15 +5,25 @@ Date: 2021-06-06 01:30:04
 LastEditors: Jiaqi Gu (jqgu@utexas.edu)
 LastEditTime: 2021-06-06 01:30:04
 """
+
+import math
+
 import torch
 from torch.optim.optimizer import Optimizer, required
-import math
 
 __all__ = ["SGD_GC"]
 
 
 class SGD_GC(Optimizer):
-    def __init__(self, params, lr=required, momentum=0, dampening=0, weight_decay=0, nesterov=False):
+    def __init__(
+        self,
+        params,
+        lr=required,
+        momentum=0,
+        dampening=0,
+        weight_decay=0,
+        nesterov=False,
+    ):
         if lr is not required and lr < 0.0:
             raise ValueError("Invalid learning rate: {}".format(lr))
         if momentum < 0.0:
@@ -22,7 +32,11 @@ class SGD_GC(Optimizer):
             raise ValueError("Invalid weight_decay value: {}".format(weight_decay))
 
         defaults = dict(
-            lr=lr, momentum=momentum, dampening=dampening, weight_decay=weight_decay, nesterov=nesterov
+            lr=lr,
+            momentum=momentum,
+            dampening=dampening,
+            weight_decay=weight_decay,
+            nesterov=nesterov,
         )
         if nesterov and (momentum <= 0 or dampening != 0):
             raise ValueError("Nesterov momentum requires a momentum and zero dampening")

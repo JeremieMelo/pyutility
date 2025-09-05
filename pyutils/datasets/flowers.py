@@ -5,6 +5,7 @@ Date: 2021-06-06 01:12:19
 LastEditors: Jiaqi Gu (jqgu@utexas.edu)
 LastEditTime: 2021-06-06 01:12:19
 """
+
 from __future__ import print_function
 
 import os
@@ -40,12 +41,21 @@ class OxfordFlowers(torch.utils.data.Dataset):
     download_url_prefix = "http://www.robots.ox.ac.uk/~vgg/data/flowers/102"
 
     def __init__(
-        self, root, train=True, val=False, transform=None, target_transform=None, download=False, classes=None
+        self,
+        root,
+        train=True,
+        val=False,
+        transform=None,
+        target_transform=None,
+        download=False,
+        classes=None,
     ):
 
         self.root = join(os.path.expanduser(root), self.folder)
         if transform is None:
-            self.transform = transforms.Compose([transforms.Resize(size=(256, 256)), transforms.ToTensor()])
+            self.transform = transforms.Compose(
+                [transforms.Resize(size=(256, 256)), transforms.ToTensor()]
+            )
         else:
             self.transform = transform
         self.train = train
@@ -140,7 +150,11 @@ class OxfordFlowers(torch.utils.data.Dataset):
 
         print(
             "%d samples spanning %d classes (avg %f per class)"
-            % (len(self.split), len(counts.keys()), float(len(self.split)) / float(len(counts.keys())))
+            % (
+                len(self.split),
+                len(counts.keys()),
+                float(len(self.split)) / float(len(counts.keys())),
+            )
         )
 
         return counts

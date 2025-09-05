@@ -5,9 +5,11 @@ Date: 2021-06-06 01:31:12
 LastEditors: Jiaqi Gu (jqgu@utexas.edu)
 LastEditTime: 2021-06-06 01:31:12
 """
+
+import math
+
 import torch
 from torch.optim.optimizer import Optimizer, required
-import math
 
 __all__ = ["GLD"]
 
@@ -33,7 +35,15 @@ class GLD(Optimizer):
     """
 
     def __init__(
-        self, params, lr=1e-3, max_r=8, min_r=1, obj_fn=required, weight_decay=0, max_cond=2, mode="search"
+        self,
+        params,
+        lr=1e-3,
+        max_r=8,
+        min_r=1,
+        obj_fn=required,
+        weight_decay=0,
+        max_cond=2,
+        mode="search",
     ):
         if not 0.0 <= lr:
             raise ValueError("Invalid learning rate: {}".format(lr))
@@ -41,15 +51,27 @@ class GLD(Optimizer):
             raise ValueError("Invalid searching radius: ({},{})".format(min_r, max_r))
         self.mode = mode
         if mode not in {"search", "fast"}:
-            raise ValueError("Invalid mode: {}. Only support 'search' and 'fast'".format(mode))
+            raise ValueError(
+                "Invalid mode: {}. Only support 'search' and 'fast'".format(mode)
+            )
         if mode == "fast" and max_cond <= 0:
             raise ValueError("Invalid condition number bound: {}.".format(max_cond))
         self.obj_fn = obj_fn
         self.search = {"search": self.GLD_search, "fast": self.GLD_fast_search}[mode]
 
-        K = (int(math.log2(max_r / min_r)) + 1) if mode == "search" else (int(math.log2(max_cond)) + 1)
+        K = (
+            (int(math.log2(max_r / min_r)) + 1)
+            if mode == "search"
+            else (int(math.log2(max_cond)) + 1)
+        )
         defaults = dict(
-            lr=lr, max_r=max_r, min_r=min_r, weight_decay=weight_decay, max_cond=max_cond, mode=mode, K=K
+            lr=lr,
+            max_r=max_r,
+            min_r=min_r,
+            weight_decay=weight_decay,
+            max_cond=max_cond,
+            mode=mode,
+            K=K,
         )
         super(GLD, self).__init__(params, defaults)
 

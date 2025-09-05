@@ -1,8 +1,8 @@
-import torch
 import numpy as np
+import torch
+
 from pyutils.compute import interp1d, polynomial
 from pyutils.general import TimerCtx
-import numpy as np
 
 
 def test_interp1d():
@@ -18,10 +18,10 @@ def test_interp1d():
     x = torch.rand(D, N, device=device) * 10000
     x = x.sort(dim=1)[0]
 
-    y = torch.linspace(0, 1000, D*N, device=device).view(D, -1)
+    y = torch.linspace(0, 1000, D * N, device=device).view(D, -1)
     y = y - y[:, 0, None]
 
-    xnew = torch.rand(Dnew, P, device=device)*10000 + 3000
+    xnew = torch.rand(Dnew, P, device=device) * 10000 + 3000
     # x = torch.tensor([[0, 1, 2, 3]], device=device).float()
     # y = torch.tensor([[0, 1, 2, 3]], device=device).float()
     # xnew = torch.tensor([[0.5, 1.5, 2.5, 3.5]], device=device)
@@ -47,6 +47,7 @@ def test_interp1d():
     # assert np.allclose(y_numpy, yq_gpu.cpu().numpy())
     print(np.sum(np.abs(y_numpy - yq_gpu.cpu().numpy())) / np.sum(np.abs(y_numpy)))
 
+
 def test_polynomial():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     x = torch.randn(100, 100, device=device)
@@ -60,6 +61,7 @@ def test_polynomial():
             y = polynomial(x, coeffs)
         torch.cuda.synchronize()
     print(t.interval / 100)
+
 
 if __name__ == "__main__":
     # test_interp1d()

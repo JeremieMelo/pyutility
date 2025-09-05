@@ -5,15 +5,15 @@ Date: 2021-06-06 01:46:57
 LastEditors: Jiaqi Gu && jiaqigu@asu.edu
 LastEditTime: 2025-01-09 17:53:29
 """
+
 import hashlib
 import json
-import ryaml
 import os
 from ast import literal_eval
 from typing import Any, Dict, List, Tuple, Union
 
+import ryaml
 from multimethod import multimethod
-
 
 __all__ = [
     "Config",
@@ -134,7 +134,7 @@ class Config(dict):
                 seperator = "\n"
             else:
                 seperator = " "
-            
+
             text = str(key) + ":" + seperator + str(value)
             lines = text.split("\n")
             for k, line in enumerate(lines[1:]):

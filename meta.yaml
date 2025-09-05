@@ -36,7 +36,7 @@ requirements:
     - pytorch >=2.0.0
     - matplotlib
     - tensorflow-gpu >=2.5.0
-    - svglib 
+    - svglib
     - scipy >=1.5.4
     - scikit-learn >=0.24.1
     - pyyaml
@@ -50,7 +50,7 @@ requirements:
     - pytorch >=2.0.0
     - matplotlib
     - tensorflow-gpu >=2.5.0
-    - svglib 
+    - svglib
     - scipy >=1.5.4
     - scikit-learn >=0.24.1
     - pyyaml

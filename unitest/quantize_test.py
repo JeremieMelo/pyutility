@@ -6,13 +6,13 @@ LastEditors: Jiaqi Gu (jqgu@utexas.edu)
 LastEditTime: 2021-06-06 02:10:59
 """
 
-import torch
-import numpy as np
-from pyutils.quantize import *
-from pyutils.quant.lsq import ActQuantizer_LSQ, WeightQuantizer_LSQ
-from pyutils.general import TimerCtx
-
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
+
+from pyutils.general import TimerCtx
+from pyutils.quant.lsq import ActQuantizer_LSQ, WeightQuantizer_LSQ
+from pyutils.quantize import *
 
 
 def test_input_quant():

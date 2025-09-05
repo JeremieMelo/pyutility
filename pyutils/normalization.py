@@ -7,8 +7,8 @@ LastEditTime: 2021-06-06 02:45:41
 """
 
 import torch
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
 
 __all__ = [
     "FilterResponseNorm1d",
@@ -30,7 +30,11 @@ class FilterResponseNormNd(nn.Module):
             eps: A scalar constant or learnable variable.
             learnable_eps: A bool value indicating whether the eps is learnable.
         """
-        assert ndim in [3, 4, 5], "FilterResponseNorm only supports 3d, 4d or 5d inputs."
+        assert ndim in [
+            3,
+            4,
+            5,
+        ], "FilterResponseNorm only supports 3d, 4d or 5d inputs."
         super(FilterResponseNormNd, self).__init__()
         shape = (1, num_features) + (1,) * (ndim - 2)
         self.eps = nn.Parameter(torch.ones(*shape) * eps)
@@ -55,17 +59,23 @@ class FilterResponseNormNd(nn.Module):
 
 class FilterResponseNorm1d(FilterResponseNormNd):
     def __init__(self, num_features, eps=1e-6, learnable_eps=False):
-        super(FilterResponseNorm1d, self).__init__(3, num_features, eps=eps, learnable_eps=learnable_eps)
+        super(FilterResponseNorm1d, self).__init__(
+            3, num_features, eps=eps, learnable_eps=learnable_eps
+        )
 
 
 class FilterResponseNorm2d(FilterResponseNormNd):
     def __init__(self, num_features, eps=1e-6, learnable_eps=False):
-        super(FilterResponseNorm2d, self).__init__(4, num_features, eps=eps, learnable_eps=learnable_eps)
+        super(FilterResponseNorm2d, self).__init__(
+            4, num_features, eps=eps, learnable_eps=learnable_eps
+        )
 
 
 class FilterResponseNorm3d(FilterResponseNormNd):
     def __init__(self, num_features, eps=1e-6, learnable_eps=False):
-        super(FilterResponseNorm3d, self).__init__(5, num_features, eps=eps, learnable_eps=learnable_eps)
+        super(FilterResponseNorm3d, self).__init__(
+            5, num_features, eps=eps, learnable_eps=learnable_eps
+        )
 
 
 class BatchNormFunction(torch.autograd.Function):
@@ -229,7 +239,15 @@ class CenConv2d(nn.Module):
     """
 
     def __init__(
-        self, in_planes, out_planes, kernel_size=3, stride=1, padding=0, dilation=1, groups=1, bias=False
+        self,
+        in_planes,
+        out_planes,
+        kernel_size=3,
+        stride=1,
+        padding=0,
+        dilation=1,
+        groups=1,
+        bias=False,
     ):
         super(CenConv2d, self).__init__()
         self.in_planes = in_planes
@@ -238,7 +256,9 @@ class CenConv2d(nn.Module):
         self.padding = padding
         self.dilation = dilation
         self.groups = groups
-        self.weight = nn.Parameter(torch.randn(out_planes, in_planes // groups, kernel_size, kernel_size))
+        self.weight = nn.Parameter(
+            torch.randn(out_planes, in_planes // groups, kernel_size, kernel_size)
+        )
         if bias:
             self.bias = nn.Parameter(torch.randn(out_planes))
         else:
@@ -246,6 +266,12 @@ class CenConv2d(nn.Module):
 
     def forward(self, x):
         weight = self.weight
-        weight_mean = weight.mean(dim=1, keepdim=True).mean(dim=2, keepdim=True).mean(dim=3, keepdim=True)
+        weight_mean = (
+            weight.mean(dim=1, keepdim=True)
+            .mean(dim=2, keepdim=True)
+            .mean(dim=3, keepdim=True)
+        )
         weight = weight - weight_mean
-        return F.conv2d(x, weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
+        return F.conv2d(
+            x, weight, self.bias, self.stride, self.padding, self.dilation, self.groups
+        )

@@ -5,9 +5,11 @@ Date: 2021-06-06 01:30:19
 LastEditors: Jiaqi Gu (jqgu@utexas.edu)
 LastEditTime: 2021-06-06 01:30:19
 """
+
+import math
+
 import torch
 from torch.optim.optimizer import Optimizer, required
-import math
 
 __all__ = ["RAdam"]
 
@@ -18,7 +20,13 @@ class RAdam(Optimizer):
     """
 
     def __init__(
-        self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8, weight_decay=0, degenerated_to_sgd=True
+        self,
+        params,
+        lr=1e-3,
+        betas=(0.9, 0.999),
+        eps=1e-8,
+        weight_decay=0,
+        degenerated_to_sgd=True,
     ):
         if not 0.0 <= lr:
             raise ValueError("Invalid learning rate: {}".format(lr))
@@ -30,9 +38,15 @@ class RAdam(Optimizer):
             raise ValueError("Invalid beta parameter at index 1: {}".format(betas[1]))
 
         self.degenerated_to_sgd = degenerated_to_sgd
-        if isinstance(params, (list, tuple)) and len(params) > 0 and isinstance(params[0], dict):
+        if (
+            isinstance(params, (list, tuple))
+            and len(params) > 0
+            and isinstance(params[0], dict)
+        ):
             for param in params:
-                if "betas" in param and (param["betas"][0] != betas[0] or param["betas"][1] != betas[1]):
+                if "betas" in param and (
+                    param["betas"][0] != betas[0] or param["betas"][1] != betas[1]
+                ):
                     param["buffer"] = [[None, None, None] for _ in range(10)]
         defaults = dict(
             lr=lr,
@@ -110,13 +124,17 @@ class RAdam(Optimizer):
                 # more conservative since it's an approximated value
                 if N_sma >= 5:
                     if group["weight_decay"] != 0:
-                        p_data_fp32.add_(p_data_fp32, alpha=-group["weight_decay"] * group["lr"])
+                        p_data_fp32.add_(
+                            p_data_fp32, alpha=-group["weight_decay"] * group["lr"]
+                        )
                     denom = exp_avg_sq.sqrt().add_(group["eps"])
                     p_data_fp32.addcdiv_(exp_avg, denom, value=-step_size * group["lr"])
                     p.data.copy_(p_data_fp32)
                 elif step_size > 0:
                     if group["weight_decay"] != 0:
-                        p_data_fp32.add_(p_data_fp32, alpha=-group["weight_decay"] * group["lr"])
+                        p_data_fp32.add_(
+                            p_data_fp32, alpha=-group["weight_decay"] * group["lr"]
+                        )
                     p_data_fp32.add_(exp_avg, alpha=-step_size * group["lr"])
                     p.data.copy_(p_data_fp32)
 

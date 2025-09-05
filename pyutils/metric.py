@@ -1,9 +1,10 @@
-'''
+"""
 Date: 2024-03-25 20:44:27
 LastEditors: Jiaqi Gu && jiaqigu@asu.edu
 LastEditTime: 2024-03-25 20:44:27
 FilePath: /pyutility/pyutils/metric.py
-'''
+"""
+
 """
 Description:
 Author: Jiaqi Gu (jqgu@utexas.edu)
@@ -37,7 +38,6 @@ def top_k_acc(output, target, k=3):
         for i in range(k):
             correct += torch.sum(pred[:, i] == target).item()
     return correct / len(target)
-
 
 
 class PerformanceTracker(object):
@@ -82,4 +82,3 @@ class PerformanceTracker(object):
                 else:
                     self.cnt_FP += 1
             self.running_total += 1
-

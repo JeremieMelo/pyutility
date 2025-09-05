@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "torchonn-pyutils"
+version = "0.0.3.2"
+description = "A collection of utility functions and modules for PyTorch and general Python usage."
+authors = [
+    { name = "JeremieMelo" }
+]
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.9"
+dependencies = [
+    # Add your runtime dependencies here, e.g. "numpy", "torch"
+    "numpy>=1.19.2",
+    "tqdm>=4.56.0",
+    "setuptools>=61.0.0",
+    "torch>=2.6.0",
+    "torchvision>=0.10.0",
+    "matplotlib>=3.3.4",
+    "svglib>=1.1.0",
+    "scipy>=1.5.4",
+    "scikit-learn>=0.24.1",
+    "pyyaml>=5.1.1",
+    "ryaml>=0.4.0",
+    "multimethod>=1.12",
+    "tensorflow>=2.5.0",
+    "scienceplots>=2.1.1"
+]
+
+[project.urls]
+Homepage = "https://github.com/JeremieMelo/pyutility"
+
+[tool.setuptools.packages.find]
+where = ["pyutils"]
+include = ["pyutils*"]
+
+[tool.setuptools]
+package-dir = {"" = "pyutils"}

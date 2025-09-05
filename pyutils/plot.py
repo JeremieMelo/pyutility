@@ -11,6 +11,7 @@ import scienceplots
 from matplotlib import pyplot as plt
 from matplotlib.ticker import FormatStrFormatter, FuncFormatter, LinearLocator
 from mpl_toolkits.axes_grid1 import Divider, Size
+
 try:
     from reportlab.graphics import renderPDF
 except Exception:
@@ -39,10 +40,19 @@ __all__ = [
 
 
 def set_ieee():
-    plt.rcParams.update({"text.usetex": True, "font.family": "serif", "font.sans-serif": ["Helvetica"]})
+    plt.rcParams.update(
+        {"text.usetex": True, "font.family": "serif", "font.sans-serif": ["Helvetica"]}
+    )
+
 
 def set_ms():
-    plt.rcParams.update({"text.usetex": False, "font.family": "sans-serif", "font.sans-serif": ["Arial"]})
+    plt.rcParams.update(
+        {
+            "text.usetex": False,
+            "font.family": "sans-serif",
+            "font.sans-serif": ["Arial"],
+        }
+    )
 
 
 set_ieee()
@@ -88,9 +98,22 @@ def smooth_line(x, y, smoothness=0):
     return x, y_smooth
 
 
-def draw_box_plot(data, ax, edge_color, fill_color, yrange, linewidth=1, markersize=1, boxwidth=0.5):
-    meanpointprops = dict(marker="D", markeredgecolor="black", markerfacecolor="red", markersize=markersize)
-    bp = ax.boxplot(data, showmeans=True, patch_artist=True, meanprops=meanpointprops, widths=boxwidth)
+def draw_box_plot(
+    data, ax, edge_color, fill_color, yrange, linewidth=1, markersize=1, boxwidth=0.5
+):
+    meanpointprops = dict(
+        marker="D",
+        markeredgecolor="black",
+        markerfacecolor="red",
+        markersize=markersize,
+    )
+    bp = ax.boxplot(
+        data,
+        showmeans=True,
+        patch_artist=True,
+        meanprops=meanpointprops,
+        widths=boxwidth,
+    )
     for element in ["boxes", "whiskers", "fliers", "means", "medians", "caps"]:
         plt.setp(bp[element], color=edge_color, linewidth=linewidth)
     for patch in bp["boxes"]:
@@ -153,7 +176,15 @@ def draw_bar_plot(data, ax, barwidth, barcolor, label=None, tick_label=None):
 
 
 def draw_line_plot(
-    data, ax, linewidth, linecolor, label=None, marker=None, markersize=1, linestyle=None, alpha=1
+    data,
+    ax,
+    linewidth,
+    linecolor,
+    label=None,
+    marker=None,
+    markersize=1,
+    linestyle=None,
+    alpha=1,
 ):
     bp = ax.plot(
         data["x"],
@@ -169,7 +200,9 @@ def draw_line_plot(
     return bp
 
 
-def draw_scatter2d_plot(data, ax, linewidth, linecolor, label=None, marker=None, alpha=1):
+def draw_scatter2d_plot(
+    data, ax, linewidth, linecolor, label=None, marker=None, alpha=1
+):
     if "area" not in data:
         area = None
     else:
@@ -227,7 +260,9 @@ def draw_mesh2d_plot(data, fig, ax, fontsize=10, cmap=plt.cm.RdYlGn):
     x = np.arange(x[0] - dx / 2, x[-1] + 1.1 * dx / 2, dx)
     y = np.arange(y[0] - dy / 2, y[-1] + 1.1 * dy / 2, dy)
 
-    im = ax.pcolormesh(x, y, z, vmin=np.min(z), vmax=np.max(z), shading="auto", cmap=cmap)
+    im = ax.pcolormesh(
+        x, y, z, vmin=np.min(z), vmax=np.max(z), shading="auto", cmap=cmap
+    )
     fig.colorbar(im, ax=ax)
     return im
 
@@ -465,7 +500,9 @@ def batch_plot(
         else:
             ax.grid(False, linewidth=0)
         ax.set_axisbelow(True)
-        bp = draw_bar_plot(data, ax, barwidth, trace_color, label=trace_label, tick_label=tick_label)
+        bp = draw_bar_plot(
+            data, ax, barwidth, trace_color, label=trace_label, tick_label=tick_label
+        )
     elif type == "line":
         data = raw_data
         if smoothness > 1e-2:
@@ -500,7 +537,13 @@ def batch_plot(
             ax.grid(False, linewidth=0)
         ax.set_axisbelow(True)
         bp = draw_scatter2d_plot(
-            data, ax, linewidth, trace_color, label=trace_label, marker=trace_marker, alpha=alpha
+            data,
+            ax,
+            linewidth,
+            trace_color,
+            label=trace_label,
+            marker=trace_marker,
+            alpha=alpha,
         )
     elif type == "errorbar":
         data = raw_data
@@ -513,7 +556,9 @@ def batch_plot(
         else:
             ax.grid(False, linewidth=0)
         ax.set_axisbelow(True)
-        bp = draw_errorbar_plot(data, ax, linewidth, trace_color, label=trace_label, alpha=alpha)
+        bp = draw_errorbar_plot(
+            data, ax, linewidth, trace_color, label=trace_label, alpha=alpha
+        )
     elif type == "pie":
         data = raw_data
         bp = draw_pie_plot(data, ax, colors=pie_colors, fontsize=fontsize)
@@ -522,7 +567,9 @@ def batch_plot(
         bp = draw_mesh2d_plot(data, fig, ax, fontsize=fontsize, cmap=cmap)
     elif type == "surface3d":
         data = raw_data
-        bp = draw_surface3d_plot(data, fig, ax, fontsize=fontsize, zrange=zrange, zformat=zformat)
+        bp = draw_surface3d_plot(
+            data, fig, ax, fontsize=fontsize, zrange=zrange, zformat=zformat
+        )
     elif type == "none" or type is None:
         bp = None
     else:
@@ -589,5 +636,7 @@ def batch_plot(
     fig.set_size_inches(figscale[0] * width, figscale[1] * height)
     if not ieee:
         DPI = fig.get_dpi()
-        fig.set_size_inches(figsize_pixels[0] / float(DPI), figsize_pixels[1] / float(DPI))
+        fig.set_size_inches(
+            figsize_pixels[0] / float(DPI), figsize_pixels[1] / float(DPI)
+        )
     return fig, ax, bp

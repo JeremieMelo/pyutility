@@ -6,12 +6,13 @@
 """
 https://github.com/facebookresearch/dadaptation/blob/main/dadaptation/dadapt_sgd.py
 """
-import torch
-import torch.optim
-import pdb
-import math
 import logging
+import math
+import pdb
+
+import torch
 import torch.distributed as dist
+import torch.optim
 
 __all__ = ["DAdaptSGD"]
 

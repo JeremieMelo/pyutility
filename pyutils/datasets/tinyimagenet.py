@@ -43,10 +43,16 @@ class TinyImageNet(VisionDataset):
     filename = "tiny-imagenet-200.zip"
     md5 = "90528d7ca1a48142e341f4ef8d21d0de"
 
-    def __init__(self, root, train=True, transform=None, target_transform=None, download=False):
+    def __init__(
+        self, root, train=True, transform=None, target_transform=None, download=False
+    ):
         if transform is None:
-            transform = transforms.Compose([transforms.Resize(size=(64, 64)), transforms.ToTensor()])
-        super(TinyImageNet, self).__init__(root, transform=transform, target_transform=target_transform)
+            transform = transforms.Compose(
+                [transforms.Resize(size=(64, 64)), transforms.ToTensor()]
+            )
+        super(TinyImageNet, self).__init__(
+            root, transform=transform, target_transform=target_transform
+        )
 
         self.dataset_path = os.path.join(root, self.base_folder)
         self.loader = default_loader
@@ -65,14 +71,20 @@ class TinyImageNet(VisionDataset):
         elif download:
             self._download()
         else:
-            raise RuntimeError("Dataset not found. You can use download=True to download it.")
+            raise RuntimeError(
+                "Dataset not found. You can use download=True to download it."
+            )
         if not os.path.isdir(self.dataset_path):
             print("Extracting...")
             extract_archive(os.path.join(root, self.filename))
 
-        _, class_to_idx = self.find_classes(os.path.join(self.dataset_path, "wnids.txt"))
+        _, class_to_idx = self.find_classes(
+            os.path.join(self.dataset_path, "wnids.txt")
+        )
 
-        self.data = self.make_dataset(self.root, self.base_folder, self.split, class_to_idx)
+        self.data = self.make_dataset(
+            self.root, self.base_folder, self.split, class_to_idx
+        )
 
     def _download(self):
         print("Downloading...")

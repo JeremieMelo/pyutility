@@ -5,18 +5,19 @@ Date: 2021-06-06 01:07:15
 LastEditors: Jiaqi Gu (jqgu@utexas.edu)
 LastEditTime: 2021-06-06 01:07:15
 """
-from __future__ import print_function
 
+from __future__ import print_function
 
 from typing import Tuple
 
 from torch.utils.data.dataset import Dataset
 from torchvision import datasets, transforms
-from .vowel import VowelRecognition
+
 from .cars import StanfordCars
 from .dogs import StanfordDogs
 from .flowers import OxfordFlowers
 from .tinyimagenet import TinyImageNet
+from .vowel import VowelRecognition
 
 __all__ = ["get_dataset"]
 
@@ -32,26 +33,38 @@ def get_dataset(
         t = []
         if (img_height, img_width) != (28, 28):
             t.append(transforms.Resize((img_height, img_width), interpolation=2))
-        transform_test = transform_train = transforms.Compose(t + [transforms.ToTensor()])
-        train_dataset = datasets.MNIST(dataset_dir, train=True, download=True, transform=transform_train)
+        transform_test = transform_train = transforms.Compose(
+            t + [transforms.ToTensor()]
+        )
+        train_dataset = datasets.MNIST(
+            dataset_dir, train=True, download=True, transform=transform_train
+        )
 
-        validation_dataset = datasets.MNIST(dataset_dir, train=False, transform=transform_test)
+        validation_dataset = datasets.MNIST(
+            dataset_dir, train=False, transform=transform_test
+        )
     elif dataset == "fashionmnist":
         t = []
         if (img_height, img_width) != (28, 28):
             t.append(transforms.Resize((img_height, img_width), interpolation=2))
-        transform_test = transform_train = transforms.Compose(t + [transforms.ToTensor()])
+        transform_test = transform_train = transforms.Compose(
+            t + [transforms.ToTensor()]
+        )
         train_dataset = datasets.FashionMNIST(
             dataset_dir, train=True, download=True, transform=transform_train
         )
 
-        validation_dataset = datasets.FashionMNIST(dataset_dir, train=False, transform=transform_test)
+        validation_dataset = datasets.FashionMNIST(
+            dataset_dir, train=False, transform=transform_test
+        )
     elif dataset == "cifar10":
         if transform == "basic":
             t = []
             if (img_height, img_width) != (32, 32):
                 t.append(transforms.Resize((img_height, img_width), interpolation=2))
-            transform_test = transform_train = transforms.Compose(t + [transforms.ToTensor()])
+            transform_test = transform_train = transforms.Compose(
+                t + [transforms.ToTensor()]
+            )
 
         else:
             transform_train = transforms.Compose(
@@ -60,7 +73,9 @@ def get_dataset(
                     transforms.Resize((img_height, img_width), interpolation=2),
                     transforms.RandomHorizontalFlip(),
                     transforms.ToTensor(),
-                    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+                    transforms.Normalize(
+                        (0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)
+                    ),
                 ]
             )
 
@@ -68,21 +83,37 @@ def get_dataset(
                 [
                     transforms.Resize((img_height, img_width), interpolation=2),
                     transforms.ToTensor(),
-                    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+                    transforms.Normalize(
+                        (0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)
+                    ),
                 ]
             )
-        train_dataset = datasets.CIFAR10(dataset_dir, train=True, download=True, transform=transform_train)
+        train_dataset = datasets.CIFAR10(
+            dataset_dir, train=True, download=True, transform=transform_train
+        )
 
-        validation_dataset = datasets.CIFAR10(dataset_dir, train=False, transform=transform_test)
+        validation_dataset = datasets.CIFAR10(
+            dataset_dir, train=False, transform=transform_test
+        )
     elif dataset == "cifar100":
         if transform == "basic":
             t = []
             if (img_height, img_width) != (28, 28):
                 t.append(transforms.Resize((img_height, img_width), interpolation=2))
-            transform_test = transform_train = transforms.Compose(t + [transforms.ToTensor()])
+            transform_test = transform_train = transforms.Compose(
+                t + [transforms.ToTensor()]
+            )
         else:
-            CIFAR100_TRAIN_MEAN = (0.5070751592371323, 0.48654887331495095, 0.4409178433670343)
-            CIFAR100_TRAIN_STD = (0.2673342858792401, 0.2564384629170883, 0.27615047132568404)
+            CIFAR100_TRAIN_MEAN = (
+                0.5070751592371323,
+                0.48654887331495095,
+                0.4409178433670343,
+            )
+            CIFAR100_TRAIN_STD = (
+                0.2673342858792401,
+                0.2564384629170883,
+                0.27615047132568404,
+            )
             transform_train = transforms.Compose(
                 [
                     transforms.RandomCrop(32, padding=4),
@@ -100,15 +131,21 @@ def get_dataset(
                     transforms.Normalize(CIFAR100_TRAIN_MEAN, CIFAR100_TRAIN_STD),
                 ]
             )
-        train_dataset = datasets.CIFAR100(dataset_dir, train=True, download=True, transform=transform_train)
+        train_dataset = datasets.CIFAR100(
+            dataset_dir, train=True, download=True, transform=transform_train
+        )
 
-        validation_dataset = datasets.CIFAR100(dataset_dir, train=False, transform=transform_test)
+        validation_dataset = datasets.CIFAR100(
+            dataset_dir, train=False, transform=transform_test
+        )
     elif dataset == "svhn":
         if transform == "basic":
             t = []
             if (img_height, img_width) != (28, 28):
                 t.append(transforms.Resize((img_height, img_width), interpolation=2))
-            transform_test = transform_train = transforms.Compose(t + [transforms.ToTensor()])
+            transform_test = transform_train = transforms.Compose(
+                t + [transforms.ToTensor()]
+            )
 
         else:
             SVHN_TRAIN_MEAN = (0.4377, 0.4438, 0.4728)
@@ -130,9 +167,13 @@ def get_dataset(
                     transforms.Normalize(SVHN_TRAIN_MEAN, SVHN_TRAIN_STD),
                 ]
             )
-        train_dataset = datasets.SVHN(dataset_dir, split="train", download=True, transform=transform_train)
+        train_dataset = datasets.SVHN(
+            dataset_dir, split="train", download=True, transform=transform_train
+        )
 
-        validation_dataset = datasets.SVHN(dataset_dir, split="test", download=True, transform=transform_test)
+        validation_dataset = datasets.SVHN(
+            dataset_dir, split="test", download=True, transform=transform_test
+        )
     elif dataset == "dogs":
         # this is imagenet-style transform
         # input_transforms = transforms.Compose([
@@ -162,9 +203,13 @@ def get_dataset(
             ]
         )
 
-        train_dataset = StanfordDogs(dataset_dir, train=True, download=True, transform=transform_train)
+        train_dataset = StanfordDogs(
+            dataset_dir, train=True, download=True, transform=transform_train
+        )
 
-        validation_dataset = StanfordDogs(dataset_dir, train=False, download=True, transform=transform_test)
+        validation_dataset = StanfordDogs(
+            dataset_dir, train=False, download=True, transform=transform_test
+        )
 
     elif dataset == "cars":
         # this is imagenet-style transform
@@ -195,9 +240,13 @@ def get_dataset(
             ]
         )
 
-        train_dataset = StanfordCars(dataset_dir, train=True, download=True, transform=transform_train)
+        train_dataset = StanfordCars(
+            dataset_dir, train=True, download=True, transform=transform_train
+        )
 
-        validation_dataset = StanfordCars(dataset_dir, train=False, download=True, transform=transform_test)
+        validation_dataset = StanfordCars(
+            dataset_dir, train=False, download=True, transform=transform_test
+        )
 
     elif dataset == "flowers":
         FLOWERS_TRAIN_MEAN = (0.4330, 0.3819, 0.2964)
@@ -205,14 +254,18 @@ def get_dataset(
         if transform == "basic":
             transform_train = transforms.Compose(
                 [
-                    transforms.RandomResizedCrop((img_height, img_width), ratio=(1, 1.3)),
+                    transforms.RandomResizedCrop(
+                        (img_height, img_width), ratio=(1, 1.3)
+                    ),
                     transforms.RandomHorizontalFlip(),
                     transforms.ToTensor(),
                 ]
             )
             transform_test = transforms.Compose(
                 [
-                    transforms.RandomResizedCrop((img_height, img_width), ratio=(1, 1.3)),
+                    transforms.RandomResizedCrop(
+                        (img_height, img_width), ratio=(1, 1.3)
+                    ),
                     transforms.RandomHorizontalFlip(),
                     transforms.ToTensor(),
                 ]
@@ -237,9 +290,13 @@ def get_dataset(
                     transforms.Normalize(FLOWERS_TRAIN_MEAN, FLOWERS_TRAIN_STD),
                 ]
             )
-        train_dataset = OxfordFlowers(dataset_dir, train=True, download=True, transform=transform_train)
+        train_dataset = OxfordFlowers(
+            dataset_dir, train=True, download=True, transform=transform_train
+        )
 
-        validation_dataset = OxfordFlowers(dataset_dir, train=False, download=True, transform=transform_test)
+        validation_dataset = OxfordFlowers(
+            dataset_dir, train=False, download=True, transform=transform_test
+        )
 
     elif dataset == "tinyimagenet":
         TINY_TRAIN_MEAN = (0.4802, 0.4481, 0.3975)
@@ -279,9 +336,13 @@ def get_dataset(
                     transforms.Normalize(TINY_TRAIN_MEAN, TINY_TRAIN_STD),
                 ]
             )
-        train_dataset = TinyImageNet(dataset_dir, train=True, download=True, transform=transform_train)
+        train_dataset = TinyImageNet(
+            dataset_dir, train=True, download=True, transform=transform_train
+        )
 
-        validation_dataset = TinyImageNet(dataset_dir, train=False, download=True, transform=transform_test)
+        validation_dataset = TinyImageNet(
+            dataset_dir, train=False, download=True, transform=transform_test
+        )
 
     elif "vowel" in dataset:
         ## vowel_4_4: 4 features and 4 labels
