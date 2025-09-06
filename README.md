@@ -1,7 +1,7 @@
 <!--
  * @Date: 2024-06-16 13:06:59
- * @LastEditors: Jiaqi Gu && jiaqigu@asu.edu
- * @LastEditTime: 2024-06-17 02:43:28
+ * @LastEditors: JeremieMelo jiaqigu@asu.edu
+ * @LastEditTime: 2025-09-05 19:16:35
  * @FilePath: /pyutility/README.md
 -->
 # pyutils
@@ -21,13 +21,15 @@ conda install scopex/label/ScopeX::torchonn-pyutils
 ```bash
 pip install torchonn-pyutils --no-build-isolation
 ```
-or install from cloned codes from github if you would like to modify the code
+or install from cloned codes from github if you would like to modify the code (recommend)
 ```bash
 git clone https://github.com/JeremieMelo/pyutility.git
 cd pyutility
-python3 setup.py install
-or
-python3 setup.py develop --no-deps
+./setup.sh
+```
+To remove the package:
+```bash
+pip uninstall torchonn_pyutils
 ```
 
 ## Usage

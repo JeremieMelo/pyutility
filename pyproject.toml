@@ -33,9 +33,5 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/JeremieMelo/pyutility"
 
-[tool.setuptools.packages.find]
-where = ["pyutils"]
-include = ["pyutils*"]
-
 [tool.setuptools]
-package-dir = {"" = "pyutils"}
+packages = { find = { where = ["."], include = ["pyutils*"] } }
